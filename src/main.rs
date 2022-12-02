@@ -1,31 +1,26 @@
-// include_str!("../input/puzzle.md");
-
-mod aoc_types;
-
+use itertools::Itertools;
+use std::collections::BinaryHeap;
 fn main() {
     day_1();
-
-    // for i in guys {
-    //     println!("{:?}", i)
-    // }
 }
 
 fn day_1() {
     let input = include_str!("../input/day_1/input");
-    let mut guys: Vec<aoc_types::Elf> = input
-        .split("\n\n")
-        .map(|guy| aoc_types::Elf::from(guy))
-        .collect();
-    guys.sort_by(|a, b| b.cmp(a));
+    let lines = input.lines().map(|l| l.parse::<i64>().unwrap_or(0));
 
-    let big_3: i64 = guys
-        .iter()
-        .take(3)
-        .enumerate()
-        .map(|(nr, e)| {
-            println!("Biggest {}: {}", nr, e.sum);
-            e.sum
-        })
-        .fold(0, |acc, x| acc + x);
-    println!("total: {}", big_3);
+    let x = lines.group_by(|&i| i != 0);
+
+    let mut w: BinaryHeap<i64> = x
+        .into_iter()
+        .filter(|(a, _b)| *a)
+        .map(|(_a, b)| b.sum())
+        .collect();
+
+    let mut sum = 0;
+    for i in 0..3 {
+        let val = w.pop().unwrap();
+        println!("Biggest {}: {}\n", i, val);
+        sum += val;
+    }
+    println!("Total: {}", sum);
 }
