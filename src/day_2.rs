@@ -1,0 +1,128 @@
+mod part1 {
+
+    #[derive(Clone, Copy, Debug)]
+    enum Rps {
+        Rock,
+        Paper,
+        Scissors,
+    }
+
+    impl Into<i64> for Rps {
+        fn into(self) -> i64 {
+            match self {
+                Rps::Rock => 1,
+                Rps::Paper => 2,
+                Rps::Scissors => 3,
+            }
+        }
+    }
+
+    impl Rps {
+        fn battle(&self, other: Self) -> Decision {
+            match self {
+                Rps::Rock => match other {
+                    Rps::Rock => Decision::Draw,
+                    Rps::Paper => Decision::Loose,
+                    Rps::Scissors => Decision::Win,
+                },
+                Rps::Paper => match other {
+                    Rps::Rock => Decision::Win,
+                    Rps::Paper => Decision::Draw,
+                    Rps::Scissors => Decision::Loose,
+                },
+                Rps::Scissors => match other {
+                    Rps::Rock => Decision::Loose,
+                    Rps::Paper => Decision::Win,
+                    Rps::Scissors => Decision::Draw,
+                },
+            }
+        }
+    }
+
+    impl TryFrom<char> for Rps {
+        type Error = &'static str;
+
+        fn try_from(value: char) -> Result<Self, Self::Error> {
+            match value.to_ascii_lowercase() {
+                'a' | 'x' => Ok(Rps::Rock),
+                'b' | 'y' => Ok(Rps::Paper),
+                'c' | 'z' => Ok(Rps::Scissors),
+                _ => Err("not a valid Rps"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    enum Decision {
+        Loose,
+        Draw,
+        Win,
+    }
+
+    impl Into<i64> for Decision {
+        fn into(self) -> i64 {
+            match self {
+                Decision::Loose => 0,
+                Decision::Draw => 3,
+                Decision::Win => 6,
+            }
+        }
+    }
+
+    fn parse_line(line: &str) -> Option<(Rps, Rps)> {
+        let mut it = line.chars();
+        let them = it.next().unwrap().try_into().unwrap();
+        let us = it.skip(1).next().unwrap().try_into().unwrap();
+        Some((us, them))
+    }
+
+    pub(crate) fn answer(input: &str) -> i64 {
+        let mut sum: i64 = 0;
+        let input = input.lines();
+
+        for (us, them) in input.filter_map(|l| parse_line(l)) {
+            let val1: i64 = us.into();
+            let val2: i64 = us.battle(them).into();
+            sum += val1 + val2;
+        }
+        return sum;
+    }
+}
+
+mod part2 {
+
+    pub(crate) fn solve(input: &str) -> i64 {
+        let lines = input.lines();
+        let mut sum = 0;
+        for l in lines {
+            let b = l.as_bytes();
+            let them = b[0];
+            let res = (b[2] - b'X') * 3;
+
+            let them = (them - b'A') as i64;
+
+            let us = match res {
+                0 => (them - 1).rem_euclid(3),
+                3 => them,
+                6 => (them + 1).rem_euclid(3),
+                _ => panic!(),
+            };
+
+            sum += us as i64 + 1 + res as i64;
+        }
+        sum
+    }
+}
+
+pub fn day_2() {
+    println!("---------------------------------\nDay2 Part1");
+
+    let input = include_str!("../input/day_2/input");
+    let test = "A Y\nB X\nC Z";
+
+    println!("test:  {:8}", part1::answer(test));
+    println!("input: {:8}", part1::answer(input));
+    println!("---------------------------------\nDay2 Part2");
+    println!("test:  {:8}", part2::solve(test));
+    println!("input: {:8}", part2::solve(input));
+}
