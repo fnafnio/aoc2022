@@ -115,14 +115,18 @@ mod part2 {
 }
 
 pub fn day_2() {
-    println!("---------------------------------\nDay2 Part1");
-
     let input = include_str!("../input/day_2/input");
-    let test = "A Y\nB X\nC Z";
 
-    println!("test:  {:8}", part1::answer(test));
-    println!("input: {:8}", part1::answer(input));
-    println!("---------------------------------\nDay2 Part2");
-    println!("test:  {:8}", part2::solve(test));
-    println!("input: {:8}", part2::solve(input));
+    println!("Day 2.1: {:8}", part1::answer(input));
+    println!("Day 2.2: {:8}", part2::solve(input));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const test: &str = "A Y\nB X\nC Z";
+    #[test]
+    fn test_part1() {
+        assert_eq!(part1::answer(test), 15);
+    }
 }

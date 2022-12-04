@@ -1,7 +1,6 @@
 use itertools::Itertools;
 use std::collections::BinaryHeap;
 
-
 pub(crate) fn day_1() {
     let input = include_str!("../input/day_1/input");
     let lines = input.lines().map(|l| l.parse::<i64>().unwrap_or(0));
@@ -17,8 +16,10 @@ pub(crate) fn day_1() {
     let mut sum = 0;
     for i in 0..3 {
         let val = w.pop().unwrap();
-        println!("Biggest {}: {}\n", i, val);
         sum += val;
+        if i == 0 {
+            println!("Day 1.1: {:8}", i);
+        }
     }
-    println!("Total: {}", sum);
+    println!("Day 1.2: {:8}", sum);
 }

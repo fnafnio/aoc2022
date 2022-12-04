@@ -34,11 +34,10 @@ fn duplicate(g: &[&str]) -> Option<char> {
 }
 
 pub(crate) fn day_3() {
-    println!("---------------------------------");
     let result_1 = part_1();
-    println!("Day 3.1: {}", result_1);
+    println!("Day 3.1: {:8}", result_1);
     let result_2 = part_2();
-    println!("Day 3.2: {}", result_2);
+    println!("Day 3.2: {:8}", result_2);
 }
 
 fn compartment_check(l: &str) -> i64 {
