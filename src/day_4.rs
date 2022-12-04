@@ -5,7 +5,7 @@ struct Assignment(i64, i64);
 
 impl Assignment {
     fn fully_contained(&self, rhs: &Assignment) -> bool {
-        self.0 >= rhs.0 && self.1 <= rhs.1 || self.0 <= rhs.0 && self.1 >= rhs.1
+        self.contains(rhs.0) && self.contains(rhs.1) || rhs.contains(self.0) && rhs.contains(self.1)
     }
 
     fn contains(&self, rhs: i64) -> bool {
