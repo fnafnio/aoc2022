@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
 use itertools::Itertools;
+const INPUT: &str = include_str!("../input/day_5/input");
 
 const TEST: &str = r"    [D]    
 [N] [C]    
@@ -42,7 +43,7 @@ impl TryFrom<&str> for Move {
             .split(" ")
             .skip(1)
             .step_by(2)
-            .map(|s| s.parse::<usize>().expect("failed to parse to int") - 1);
+            .map(|s| s.parse::<usize>().expect("failed to parse to int"));
 
         let (cnt, src, dst) = it.tuples().next().expect("something went wrong");
         // let cnt: usize = it
@@ -61,7 +62,11 @@ impl TryFrom<&str> for Move {
         //     .parse()
         //     .map_err(|_| "not an usize")?;
 
-        Ok(Self { src, dst, cnt })
+        Ok(Self {
+            src: src - 1,
+            dst: dst - 1,
+            cnt,
+        })
     }
 }
 
@@ -92,6 +97,13 @@ impl Stacks {
             println!("");
         });
     }
+
+    fn get_top(&self) -> String {
+        self.stacks
+            .iter()
+            .map(|s| s.back().expect("stack should not be empty"))
+            .collect()
+    }
 }
 
 fn parse_stack(input: &[&str]) -> Stacks {
@@ -114,12 +126,11 @@ fn parse_stack(input: &[&str]) -> Stacks {
                 }
             });
     }
-    // fun_name(&stacks);
 
     Stacks::new(stacks)
 }
 
-fn solve_part1(input: &str) {
+fn solve_part1(input: &str) -> String {
     let (s, m) = split_input(input);
     let mut s = parse_stack(&s);
     // let mut s = Stacks::new(s);
@@ -133,6 +144,14 @@ fn solve_part1(input: &str) {
         s.draw();
         println!("---------------------------------");
     }
+
+    println!("---------------------------------");
+    s.get_top()
+}
+
+pub fn day_5() {
+    let p1 = solve_part1(INPUT);
+    println!("{}", p1)
 }
 
 #[cfg(test)]
@@ -156,6 +175,7 @@ mod tests {
 
     #[test]
     fn test_run_stuff() {
-        solve_part1(TEST);
+        let tops = solve_part1(TEST);
+        assert_eq!(tops, "CMZ");
     }
 }
