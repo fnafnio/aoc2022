@@ -124,9 +124,9 @@ pub fn day_2() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    const test: &str = "A Y\nB X\nC Z";
+    const TEST: &str = "A Y\nB X\nC Z";
     #[test]
     fn test_part1() {
-        assert_eq!(part1::answer(test), 15);
+        assert_eq!(part1::answer(TEST), 15);
     }
 }
