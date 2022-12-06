@@ -1,7 +1,21 @@
 use itertools::Itertools;
 use std::collections::BinaryHeap;
 
-pub(crate) fn day_1() {
+use crate::Solver;
+
+pub struct Day1;
+
+impl Solver for Day1 {
+    fn part_1(&self, input: &str) -> String {
+        todo!()
+    }
+
+    fn part_2(&self, input: &str) -> String {
+        todo!()
+    }
+}
+
+pub fn day_1() {
     let input = include_str!("../input/day_1/input");
     let lines = input.lines().map(|l| l.parse::<i64>().unwrap_or(0));
 

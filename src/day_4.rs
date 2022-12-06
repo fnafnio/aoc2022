@@ -1,5 +1,19 @@
 use itertools::Itertools;
 
+use crate::Solver;
+
+pub struct Day4;
+
+impl Solver for Day4 {
+    fn part_1(&self, input: &str) -> String {
+        todo!()
+    }
+
+    fn part_2(&self, input: &str) -> String {
+        todo!()
+    }
+}
+
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
 struct Assignment(i64, i64);
 

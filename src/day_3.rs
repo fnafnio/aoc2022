@@ -1,6 +1,22 @@
 use std::collections::HashSet;
 
 use itertools::Itertools;
+
+use crate::Solver;
+
+pub struct Day3;
+
+impl Solver for Day3 {
+    fn part_1(&self, input: &str) -> String {
+        todo!()
+    }
+
+    fn part_2(&self, input: &str) -> String {
+        todo!()
+    }
+}
+
+
 const INPUT: &str = include_str!("../input/day_3/input");
 
 fn part_1() -> i64 {
@@ -33,7 +49,7 @@ fn duplicate(g: &[&str]) -> Option<char> {
     common.iter().next().cloned()
 }
 
-pub(crate) fn day_3() {
+pub fn day_3() {
     let result_1 = part_1();
     println!("Day 3.1: {:12}", result_1);
     let result_2 = part_2();

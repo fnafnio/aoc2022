@@ -1,3 +1,18 @@
+use crate::Solver;
+
+
+pub struct Day2;
+
+impl Solver for Day2 {
+    fn part_1(&self, input: &str) -> String {
+        todo!()
+    }
+
+    fn part_2(&self, input: &str) -> String {
+        todo!()
+    }
+}
+
 mod part1 {
 
     #[derive(Clone, Copy, Debug)]
