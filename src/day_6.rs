@@ -21,7 +21,7 @@ impl Solver for Day6 {
     }
 }
 
-pub fn day_6() {
+pub fn _day_6() {
     let (_marker, pos) =
         find_marker(INPUT, START_OF_PACKET_LEN).expect("There has to bee a marker in the input");
     println!("Day 6.1: {:12}", pos);

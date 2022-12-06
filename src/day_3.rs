@@ -8,33 +8,33 @@ pub struct Day3;
 
 impl Solver for Day3 {
     fn part_1(&self, input: &str) -> String {
-        todo!()
+        solve_1().to_string()
     }
 
     fn part_2(&self, input: &str) -> String {
-        todo!()
+        solve_2().to_string()
     }
 }
 
 
 const INPUT: &str = include_str!("../input/day_3/input");
 
-fn part_1() -> i64 {
+fn solve_1() -> i64 {
     INPUT.lines().map(|l| compartment_check(l)).sum()
 }
 
-fn part_2() -> i64 {
+fn solve_2() -> i64 {
     INPUT
         .lines()
         .chunks(3)
         .into_iter()
         .map(|s| s.collect::<Vec<&str>>())
-        .map(|s| duplicate(&s).unwrap())
+        .map(|s| duplicates(&s).unwrap())
         .map(|c| calc_priority(c))
         .sum()
 }
 
-fn duplicate(g: &[&str]) -> Option<char> {
+fn duplicates(g: &[&str]) -> Option<char> {
     if g.len() < 2 {
         return None;
     }
@@ -49,17 +49,17 @@ fn duplicate(g: &[&str]) -> Option<char> {
     common.iter().next().cloned()
 }
 
-pub fn day_3() {
-    let result_1 = part_1();
+pub fn _day_3() {
+    let result_1 = solve_1();
     println!("Day 3.1: {:12}", result_1);
-    let result_2 = part_2();
+    let result_2 = solve_2();
     println!("Day 3.2: {:12}", result_2);
 }
 
 fn compartment_check(l: &str) -> i64 {
     let (left, right) = l.split_at(l.len().div_ceil(2));
 
-    let dup = duplicate(&[left, right]).unwrap();
+    let dup = duplicates(&[left, right]).unwrap();
     calc_priority(dup)
 }
 
@@ -75,7 +75,7 @@ fn calc_priority(c: char) -> i64 {
 mod tests {
     use itertools::Itertools;
 
-    use super::{calc_priority, compartment_check, duplicate};
+    use super::{calc_priority, compartment_check, duplicates};
 
     const TEST: &str = include_str!("../input/day_3/test");
 
@@ -92,7 +92,7 @@ mod tests {
             .chunks(3)
             .into_iter()
             .map(|s| s.collect::<Vec<&str>>())
-            .map(|s| duplicate(&s).unwrap())
+            .map(|s| duplicates(&s).unwrap())
             .map(|c| calc_priority(c))
             .sum();
         assert_eq!(sum, 70)

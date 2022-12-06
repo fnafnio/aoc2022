@@ -143,7 +143,7 @@ fn solve_part2(s: &mut Stacks, m: &[&str]) -> String {
     s.get_top()
 }
 
-pub fn day_5() {
+pub fn _day_5() {
     let (mut s, m) = prepare_input(INPUT);
     let p1 = solve_part1(&mut s.clone(), &m);
     println!("Day 5.1: {:>12}", p1);

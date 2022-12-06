@@ -1,4 +1,4 @@
-use aoc2022::{day_1, day_2, day_3, day_4, day_5, day_6, run_solver, Day, Part};
+use aoc2022::{run_solver, Day, Part};
 use clap::Parser;
 
 #[derive(Parser, Debug)]

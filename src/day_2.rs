@@ -5,11 +5,11 @@ pub struct Day2;
 
 impl Solver for Day2 {
     fn part_1(&self, input: &str) -> String {
-        todo!()
+        part1::solve(input).to_string()
     }
 
     fn part_2(&self, input: &str) -> String {
-        todo!()
+        part2::solve(input).to_string()
     }
 }
 
@@ -91,7 +91,7 @@ mod part1 {
         Some((us, them))
     }
 
-    pub(crate) fn answer(input: &str) -> i64 {
+    pub(crate) fn solve(input: &str) -> i64 {
         let mut sum: i64 = 0;
         let input = input.lines();
 
@@ -129,10 +129,10 @@ mod part2 {
     }
 }
 
-pub fn day_2() {
+pub fn _day_2() {
     let input = include_str!("../input/day_2/input");
 
-    println!("Day 2.1: {:12}", part1::answer(input));
+    println!("Day 2.1: {:12}", part1::solve(input));
     println!("Day 2.2: {:12}", part2::solve(input));
 }
 
@@ -142,6 +142,6 @@ mod tests {
     const TEST: &str = "A Y\nB X\nC Z";
     #[test]
     fn test_part1() {
-        assert_eq!(part1::answer(TEST), 15);
+        assert_eq!(part1::solve(TEST), 15);
     }
 }

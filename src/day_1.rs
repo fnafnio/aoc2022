@@ -15,7 +15,7 @@ impl Solver for Day1 {
     }
 }
 
-pub fn day_1() {
+pub fn _day_1() {
     let input = include_str!("../input/day_1/input");
     let lines = input.lines().map(|l| l.parse::<i64>().unwrap_or(0));
 

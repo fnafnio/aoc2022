@@ -10,13 +10,23 @@ use day_3::Day3;
 use day_4::Day4;
 use day_5::Day5;
 use day_6::Day6;
+use solutions::Day_1;
+use solutions::Day_1;
+use solutions::Day_1;
+use solutions::Day_1;
+use solutions::Day_1;
+use solutions::Day_1;
 
-pub mod day_1;
-pub mod day_2;
-pub mod day_3;
-pub mod day_4;
-pub mod day_5;
-pub mod day_6;
+mod solutions;
+
+const SOLVERS: &[&dyn Solver] = &[&Day1, &Day2, &Day3, &Day4, &Day5, &Day6];
+
+pub fn run_solver(day: Day, part: Part, input: &str) -> String {
+    // assert!(day < SOLVERS.len() && day > 0);
+    // let day = day - 1;
+
+    SOLVERS[day.index()].run_part(input, part)
+}
 
 pub enum ParsingErrors {
     InvalidDay(String),
@@ -91,13 +101,4 @@ pub trait Solver {
             Part::Part2 => self.part_2(input),
         }
     }
-}
-
-const SOLVERS: &[&dyn Solver] = &[&Day1, &Day2, &Day3, &Day4, &Day5, &Day6];
-
-pub fn run_solver(day: Day, part: Part, input: &str) -> String {
-    // assert!(day < SOLVERS.len() && day > 0);
-    // let day = day - 1;
-
-    SOLVERS[day.index()].run_part(input, part)
 }
