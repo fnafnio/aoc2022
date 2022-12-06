@@ -55,9 +55,9 @@ fn part_2(input: &str) -> usize {
 
 pub fn day_4() {
     let result = part_1(INPUT);
-    println!("Day 4.1: {:8}", result);
+    println!("Day 4.1: {:12}", result);
     let result = part_2(INPUT);
-    println!("Day 4.2: {:8}", result);
+    println!("Day 4.2: {:12}", result);
 }
 
 #[cfg(test)]

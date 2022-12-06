@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+// use std::collections::Vec;
 
 use itertools::Itertools;
 const INPUT: &str = include_str!("../input/day_5/input");
@@ -46,11 +46,11 @@ impl TryFrom<&str> for Move {
 
 #[derive(Debug, Default, Clone)]
 struct Stacks {
-    stacks: Vec<VecDeque<char>>,
+    stacks: Vec<Vec<char>>,
 }
 
 impl Stacks {
-    fn new(stacks: Vec<VecDeque<char>>) -> Self {
+    fn new(stacks: Vec<Vec<char>>) -> Self {
         Self { stacks }
     }
 
@@ -59,9 +59,9 @@ impl Stacks {
 
         for _ in 0..order.cnt {
             let c = self.stacks[order.src]
-                .pop_back()
+                .pop()
                 .expect("stack already empty");
-            self.stacks[order.dst].push_back(c);
+            self.stacks[order.dst].push(c);
         }
     }
 
@@ -69,7 +69,7 @@ impl Stacks {
         let src = &mut self.stacks[order.src];
         let drained: Vec<_> = src.drain(src.len() - order.cnt..).collect();
         for c in drained {
-            self.stacks[order.dst].push_back(c)
+            self.stacks[order.dst].push(c)
         }
     }
 
@@ -83,7 +83,7 @@ impl Stacks {
     fn get_top(&self) -> String {
         self.stacks
             .iter()
-            .map(|s| s.back().expect("stack should not be empty"))
+            .map(|s| s.last().expect("stack should not be empty"))
             .collect()
     }
 }
@@ -92,7 +92,7 @@ fn parse_stack(input: &[&str]) -> Stacks {
     let mut it = input.iter().rev();
     let &last = it.next().expect("Empty input");
 
-    let mut stacks: Vec<VecDeque<char>> = vec![];
+    let mut stacks: Vec<Vec<char>> = vec![];
     last.split_ascii_whitespace()
         .for_each(|_| stacks.push(Default::default()));
 
@@ -104,7 +104,7 @@ fn parse_stack(input: &[&str]) -> Stacks {
             .enumerate()
             .for_each(|(i, c)| {
                 if !c.is_whitespace() {
-                    stacks[i].push_back(c)
+                    stacks[i].push(c)
                 }
             });
     }
@@ -132,9 +132,9 @@ fn solve_part2(s: &mut Stacks, m: &[&str]) -> String {
 pub fn day_5() {
     let (mut s, m) = prepare_input(INPUT);
     let p1 = solve_part1(&mut s.clone(), &m);
-    println!("Day 5.1: {}", p1);
+    println!("Day 5.1: {:>12}", p1);
     let p2 = solve_part2(&mut s, &m);
-    println!("Day 5.2: {}", p2)
+    println!("Day 5.2: {:>12}", p2)
 }
 
 

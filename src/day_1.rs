@@ -18,8 +18,8 @@ pub(crate) fn day_1() {
         let val = w.pop().unwrap();
         sum += val;
         if i == 0 {
-            println!("Day 1.1: {:8}", val);
+            println!("Day 1.1: {:12}", val);
         }
     }
-    println!("Day 1.2: {:8}", sum);
+    println!("Day 1.2: {:12}", sum);
 }

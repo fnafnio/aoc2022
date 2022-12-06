@@ -117,8 +117,8 @@ mod part2 {
 pub fn day_2() {
     let input = include_str!("../input/day_2/input");
 
-    println!("Day 2.1: {:8}", part1::answer(input));
-    println!("Day 2.2: {:8}", part2::solve(input));
+    println!("Day 2.1: {:12}", part1::answer(input));
+    println!("Day 2.2: {:12}", part2::solve(input));
 }
 
 #[cfg(test)]
