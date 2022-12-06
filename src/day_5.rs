@@ -3,22 +3,7 @@ use std::collections::VecDeque;
 use itertools::Itertools;
 const INPUT: &str = include_str!("../input/day_5/input");
 
-const TEST: &str = r"    [D]    
-[N] [C]    
-[Z] [M] [P]
- 1   2   3 
-
-move 1 from 2 to 1
-move 3 from 1 to 3
-move 2 from 2 to 1
-move 1 from 1 to 2";
-
 fn split_input(input: &str) -> (Vec<&str>, Vec<&str>) {
-    // let it = input.lines();
-    // let stack: Vec<&str> = it.clone().take_while(|s| !s.is_empty()).collect();
-    //
-    // let moves = it.skip(stack.len() + 1).collect();
-
     let (stack, moves) = input
         .split_once("\n\n")
         .expect("there should be an empty line!");
@@ -27,6 +12,11 @@ fn split_input(input: &str) -> (Vec<&str>, Vec<&str>) {
     (stack, moves)
 }
 
+fn prepare_input(input: &str) -> (Stacks, Vec<&str>) {
+    let (s, m) = split_input(input);
+    let s = parse_stack(&s);
+    (s, m)
+}
 #[derive(Debug, Default)]
 struct Move {
     src: usize,
@@ -38,29 +28,13 @@ impl TryFrom<&str> for Move {
     type Error = &'static str;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        println!("{}", value);
-        let mut it = value
+        let it = value
             .split(" ")
             .skip(1)
             .step_by(2)
             .map(|s| s.parse::<usize>().expect("failed to parse to int"));
 
         let (cnt, src, dst) = it.tuples().next().expect("something went wrong");
-        // let cnt: usize = it
-        //     .next()
-        //     .expect("command too short")
-        //     .parse()
-        //     .map_err(|_| "cnt not an usize")?;
-        // let src: usize = it
-        //     .next()
-        //     .expect("cnt command too short")
-        //     .parse()
-        //     .map_err(|_| "not an usize")?;
-        // let dst: usize = it
-        //     .next()
-        //     .expect("cnt command too short")
-        //     .parse()
-        //     .map_err(|_| "not an usize")?;
 
         Ok(Self {
             src: src - 1,
@@ -70,7 +44,7 @@ impl TryFrom<&str> for Move {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct Stacks {
     stacks: Vec<VecDeque<char>>,
 }
@@ -80,10 +54,10 @@ impl Stacks {
         Self { stacks }
     }
 
-    fn follow_order(&mut self, order: &Move) {
+    fn move_single(&mut self, order: &Move) {
         assert!(order.src < self.stacks.len() && order.dst < self.stacks.len());
 
-        for i in 0..order.cnt {
+        for _ in 0..order.cnt {
             let c = self.stacks[order.src]
                 .pop_back()
                 .expect("stack already empty");
@@ -91,7 +65,15 @@ impl Stacks {
         }
     }
 
-    fn draw(&self) {
+    fn move_multiple(&mut self, order: &Move) {
+        let src = &mut self.stacks[order.src];
+        let drained: Vec<_> = src.drain(src.len() - order.cnt..).collect();
+        for c in drained {
+            self.stacks[order.dst].push_back(c)
+        }
+    }
+
+    fn _draw(&self) {
         self.stacks.iter().for_each(|s| {
             s.iter().for_each(|c| print!("{}", c));
             println!("");
@@ -130,33 +112,46 @@ fn parse_stack(input: &[&str]) -> Stacks {
     Stacks::new(stacks)
 }
 
-fn solve_part1(input: &str) -> String {
-    let (s, m) = split_input(input);
-    let mut s = parse_stack(&s);
-    // let mut s = Stacks::new(s);
-    println!("---------------------------------");
-    s.draw();
-    println!("---------------------------------");
-    for l in m {
+fn solve_part1(s: &mut Stacks, m: &[&str]) -> String {
+    for &l in m {
         let cmd = Move::try_from(l).expect("Should be a valid move");
-        s.follow_order(&cmd);
-        println!("{:?}", cmd);
-        s.draw();
-        println!("---------------------------------");
+        s.move_single(&cmd);
     }
 
-    println!("---------------------------------");
+    s.get_top()
+}
+
+fn solve_part2(s: &mut Stacks, m: &[&str]) -> String {
+    for &l in m {
+        let cmd = Move::try_from(l).expect("Should be a valid move");
+        s.move_multiple(&cmd);
+    }
     s.get_top()
 }
 
 pub fn day_5() {
-    let p1 = solve_part1(INPUT);
-    println!("{}", p1)
+    let (mut s, m) = prepare_input(INPUT);
+    let p1 = solve_part1(&mut s.clone(), &m);
+    println!("Day 5.1: {}", p1);
+    let p2 = solve_part2(&mut s, &m);
+    println!("Day 5.2: {}", p2)
 }
+
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const TEST: &str = r"    [D]    
+    [N] [C]    
+    [Z] [M] [P]
+     1   2   3 
+    
+    move 1 from 2 to 1
+    move 3 from 1 to 3
+    move 2 from 2 to 1
+    move 1 from 1 to 2";
 
     #[test]
     fn test_split_input() {
@@ -174,8 +169,16 @@ mod tests {
     }
 
     #[test]
-    fn test_run_stuff() {
-        let tops = solve_part1(TEST);
+    fn test_solve_part_1() {
+        let (mut s, m) = prepare_input(TEST);
+        let tops = solve_part1(&mut s, &m);
         assert_eq!(tops, "CMZ");
+    }
+
+    #[test]
+    fn test_solve_part_2() {
+        let (mut s, m) = prepare_input(TEST);
+        let tops = solve_part2(&mut s, &m);
+        assert_eq!(tops, "MCD")
     }
 }
