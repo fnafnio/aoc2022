@@ -1,4 +1,5 @@
 [package]
+author = "Fabio Pungg <fabiopungg@gmail.com>"
 edition = "2021"
 name = "aoc2022"
 version = "0.1.0"

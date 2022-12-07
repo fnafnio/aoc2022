@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use aoc2022::{run_solver, Day, Part};
 use clap::Parser;
 
@@ -6,6 +8,7 @@ use clap::Parser;
 struct Cli {
     day: usize,
     part: usize,
+    path: PathBuf,
 }
 
 fn main() -> color_eyre::Result<()> {
@@ -17,8 +20,9 @@ fn main() -> color_eyre::Result<()> {
 
     println!("Day {} Part {}", *day, part as usize);
 
-    let input = include_str!("../input/day_6/input");
-    let result = run_solver(day, part, input);
+    let input = std::fs::read_to_string(cli.path)?;
+    
+    let result = run_solver(day, part, &input);
 
     println!("{}", result);
 
