@@ -42,15 +42,6 @@ impl TryFrom<&str> for Assignment {
     }
 }
 
-const INPUT: &str = include_str!("../input/day_4/input");
-pub fn _day_4() {
-    let result = solve_1(INPUT);
-    println!("Day 4.1: {:12}", result);
-    let result = solve_2(INPUT);
-    println!("Day 4.2: {:12}", result);
-}
-
-
 fn parse_line(l: &str) -> (Assignment, Assignment) {
     l.split(',')
         .map(|a| Assignment::try_from(a).unwrap())

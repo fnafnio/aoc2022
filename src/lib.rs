@@ -1,21 +1,10 @@
+#![feature(binary_heap_drain_sorted)]
 #![feature(int_roundings)]
-use std::{fmt::Display, ops::Deref};
 
 use color_eyre::eyre;
 use eyre::{anyhow, Error};
 
-use day_1::Day1;
-use day_2::Day2;
-use day_3::Day3;
-use day_4::Day4;
-use day_5::Day5;
-use day_6::Day6;
-use solutions::Day_1;
-use solutions::Day_1;
-use solutions::Day_1;
-use solutions::Day_1;
-use solutions::Day_1;
-use solutions::Day_1;
+use solutions::*;
 
 mod solutions;
 
@@ -77,17 +66,6 @@ impl std::ops::Deref for Day {
 
     fn deref(&self) -> &Self::Target {
         &self.0
-    }
-}
-
-pub struct Days {
-    solvers: Vec<Box<dyn Solver>>,
-}
-
-impl Days {
-    pub fn new() -> Self {
-        let mut solvers = Vec::new();
-        Self { solvers }
     }
 }
 

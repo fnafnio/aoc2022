@@ -15,13 +15,12 @@ fn main() -> color_eyre::Result<()> {
     let day: Day = cli.day.try_into()?;
     let part: Part = cli.part.try_into()?;
 
-    // println!("{:?}", cli);
     println!("Day {} Part {}", *day, part as usize);
 
     let input = include_str!("../input/day_6/input");
-    // aoc2022::run_solver(6, "bla");
     let result = run_solver(day, part, input);
 
+    println!("{}", result);
 
     Ok(())
 }

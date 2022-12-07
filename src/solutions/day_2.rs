@@ -1,6 +1,5 @@
 use crate::Solver;
 
-
 pub struct Day2;
 
 impl Solver for Day2 {
@@ -129,17 +128,11 @@ mod part2 {
     }
 }
 
-pub fn _day_2() {
-    let input = include_str!("../input/day_2/input");
-
-    println!("Day 2.1: {:12}", part1::solve(input));
-    println!("Day 2.2: {:12}", part2::solve(input));
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     const TEST: &str = "A Y\nB X\nC Z";
+
     #[test]
     fn test_part1() {
         assert_eq!(part1::solve(TEST), 15);

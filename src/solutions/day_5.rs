@@ -1,6 +1,4 @@
-
 use itertools::Itertools;
-const INPUT: &str = include_str!("../input/day_5/input");
 
 use crate::Solver;
 
@@ -8,16 +6,15 @@ pub struct Day5;
 
 impl Solver for Day5 {
     fn part_1(&self, input: &str) -> String {
-        let (mut s, m) = prepare_input(INPUT);
+        let (s, m) = prepare_input(input);
         solve_part1(&mut s.clone(), &m)
     }
 
     fn part_2(&self, input: &str) -> String {
-        let (mut s, m) = prepare_input(INPUT);
+        let (s, m) = prepare_input(input);
         solve_part2(&mut s.clone(), &m)
     }
 }
-
 
 fn split_input(input: &str) -> (Vec<&str>, Vec<&str>) {
     let (stack, moves) = input
@@ -142,15 +139,6 @@ fn solve_part2(s: &mut Stacks, m: &[&str]) -> String {
     }
     s.get_top()
 }
-
-pub fn _day_5() {
-    let (mut s, m) = prepare_input(INPUT);
-    let p1 = solve_part1(&mut s.clone(), &m);
-    println!("Day 5.1: {:>12}", p1);
-    let p2 = solve_part2(&mut s, &m);
-    println!("Day 5.2: {:>12}", p2)
-}
-
 
 #[cfg(test)]
 mod tests {

@@ -13,3 +13,6 @@ thiserror = "1.0.37"
 
 [lib]
 bench = false
+
+[dev-dependencies]
+test-case = "2.2.2"
