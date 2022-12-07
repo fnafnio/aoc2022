@@ -1,16 +1,23 @@
+use crate::Solver;
 use itertools::Itertools;
 
-const INPUT: &str = include_str!("../input/day_6/input");
 const START_OF_PACKET_LEN: usize = 4;
 const START_OF_MSG_LEN: usize = 14;
 
-pub fn day_6() {
-    let (_marker, pos) =
-        find_marker(INPUT, START_OF_PACKET_LEN).expect("There has to bee a marker in the input");
-    println!("Day 6.1: {:12}", pos);
-    let (_marker, pos) =
-        find_marker(INPUT, START_OF_MSG_LEN).expect("There has to bee a marker in the input");
-    println!("Day 6.2: {:12}", pos);
+pub struct Day6;
+
+impl Solver for Day6 {
+    fn part_1(&self, input: &str) -> String {
+        let (_, s) = find_marker(input, START_OF_PACKET_LEN)
+            .expect("There has to bee a marker in the input");
+        s.to_string()
+    }
+
+    fn part_2(&self, input: &str) -> String {
+        let (_, s) =
+            find_marker(input, START_OF_MSG_LEN).expect("There has to bee a marker in the input");
+        s.to_string()
+    }
 }
 
 fn find_marker(l: &str, size: usize) -> Option<(&str, usize)> {

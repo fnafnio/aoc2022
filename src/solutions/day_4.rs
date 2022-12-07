@@ -1,5 +1,19 @@
 use itertools::Itertools;
 
+use crate::Solver;
+
+pub struct Day4;
+
+impl Solver for Day4 {
+    fn part_1(&self, input: &str) -> String {
+        solve_1(input).to_string()
+    }
+
+    fn part_2(&self, input: &str) -> String {
+        solve_2(input).to_string()
+    }
+}
+
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
 struct Assignment(i64, i64);
 
@@ -28,8 +42,6 @@ impl TryFrom<&str> for Assignment {
     }
 }
 
-const INPUT: &str = include_str!("../input/day_4/input");
-
 fn parse_line(l: &str) -> (Assignment, Assignment) {
     l.split(',')
         .map(|a| Assignment::try_from(a).unwrap())
@@ -38,14 +50,14 @@ fn parse_line(l: &str) -> (Assignment, Assignment) {
         .unwrap()
 }
 
-fn part_1(input: &str) -> usize {
+fn solve_1(input: &str) -> usize {
     input
         .lines()
         .map(|l| parse_line(l))
         .filter(|(x, y)| x.fully_contained(y))
         .count()
 }
-fn part_2(input: &str) -> usize {
+fn solve_2(input: &str) -> usize {
     input
         .lines()
         .map(|l| parse_line(l))
@@ -53,12 +65,6 @@ fn part_2(input: &str) -> usize {
         .count()
 }
 
-pub fn day_4() {
-    let result = part_1(INPUT);
-    println!("Day 4.1: {:12}", result);
-    let result = part_2(INPUT);
-    println!("Day 4.2: {:12}", result);
-}
 
 #[cfg(test)]
 mod tests {
@@ -94,11 +100,11 @@ mod tests {
 
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(&TEST), 2)
+        assert_eq!(solve_1(&TEST), 2)
     }
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(&TEST), 4)
+        assert_eq!(solve_2(&TEST), 4)
     }
 }

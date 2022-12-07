@@ -1,23 +1,30 @@
-#![feature(int_roundings)]
-mod day_1;
-mod day_2;
-mod day_3;
-mod day_4;
-mod day_5;
-mod day_6;
+use std::path::PathBuf;
 
-fn main() {
-    println!("---------------------------------");
-    day_1::day_1();
-    println!("---------------------------------");
-    day_2::day_2();
-    println!("---------------------------------");
-    day_3::day_3();
-    println!("---------------------------------");
-    day_4::day_4();
-    println!("---------------------------------");
-    day_5::day_5();
-    println!("---------------------------------");
-    day_6::day_6();
-    println!("---------------------------------");
+use aoc2022::{run_solver, Day, Part};
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    day: usize,
+    part: usize,
+    path: PathBuf,
+}
+
+fn main() -> color_eyre::Result<()> {
+    color_eyre::install()?;
+    let cli = Cli::parse();
+
+    let day: Day = cli.day.try_into()?;
+    let part: Part = cli.part.try_into()?;
+
+    println!("Day {} Part {}", *day, part as usize);
+
+    let input = std::fs::read_to_string(cli.path)?;
+    
+    let result = run_solver(day, part, &input);
+
+    println!("{}", result);
+
+    Ok(())
 }
