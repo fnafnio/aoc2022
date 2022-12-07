@@ -8,7 +8,7 @@ use solutions::*;
 
 mod solutions;
 
-const SOLVERS: &[&dyn Solver] = &[&Day1, &Day2, &Day3, &Day4, &Day5, &Day6];
+const SOLVERS: &[&dyn Solver] = &[&Day1, &Day2, &Day3, &Day4, &Day5, &Day6, &Day7];
 
 pub fn run_solver(day: Day, part: Part, input: &str) -> String {
     // assert!(day < SOLVERS.len() && day > 0);
