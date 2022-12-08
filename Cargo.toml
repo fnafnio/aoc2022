@@ -1,5 +1,5 @@
 [package]
-author = "Fabio Pungg <fabiopungg@gmail.com>"
+authors = ["Fabio Pungg <fabiopungg@gmail.com>"]
 edition = "2021"
 name = "aoc2022"
 version = "0.1.0"
@@ -10,10 +10,12 @@ version = "0.1.0"
 clap = {version = "4.0.29", features = ["derive"]}
 color-eyre = "0.6.2"
 itertools = "0.10.5"
+nom = "7.1.1"
 thiserror = "1.0.37"
 
 [lib]
 bench = false
 
 [dev-dependencies]
+assert_ok = "1.0.2"
 test-case = "2.2.2"
