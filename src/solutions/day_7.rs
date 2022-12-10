@@ -4,13 +4,46 @@ use crate::Solver;
 
 pub struct Day7;
 
+const MIN_FREE: usize = 30_000_000;
+const DISK_SIZE: usize = 70_000_000;
+
 impl Solver for Day7 {
     fn part_1(&self, input: &str) -> String {
-        todo!()
+        let entries = crawler(input);
+
+        let dt = total_size(&entries);
+        for x in dt.iter().sorted_by(|x, y| x.1.cmp(y.1)) {
+            println!("{:?}", x)
+        }
+
+        let result: usize = dt
+            .values()
+            .filter(|&&size| dbg!(size) < 100_000)
+            .sum1()
+            .unwrap();
+        result.to_string()
     }
 
     fn part_2(&self, input: &str) -> String {
-        todo!()
+        let entries = crawler(input);
+
+        let dt = total_size(&entries);
+
+        let total_used: usize = *dt.get(&Utf8PathBuf::from("/")).unwrap();
+
+        let free = DISK_SIZE - total_used;
+        if free > MIN_FREE {
+            return free.to_string();
+        }
+        let min = MIN_FREE - free;
+        let result = dt
+            .values()
+            .sorted()
+            .filter(|&&val| val > min)
+            .next()
+            .unwrap();
+
+        result.to_string()
     }
 }
 
@@ -18,26 +51,6 @@ impl Solver for Day7 {
 enum Entry {
     File(File),
     Dir(Dir),
-}
-
-impl Entry {
-    fn is_file(&self) -> bool {
-        match self {
-            Entry::File(_) => true,
-            Entry::Dir(_) => false,
-        }
-    }
-
-    // fn get_file(&self) -> Option<File> {
-    //     match self {
-    //         Entry::File(f) => Some(*f.clone()),
-    //         Entry::Dir(_) => None,
-    //     }
-    // }
-
-    fn is_dir(&self) -> bool {
-        !self.is_file()
-    }
 }
 
 #[derive(Debug)]
@@ -67,7 +80,7 @@ struct Dir(Utf8PathBuf);
 #[derive(Debug, PartialEq, Eq)]
 struct File(Utf8PathBuf, usize);
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 use itertools::Itertools;
 use nom::{
     self,
@@ -170,7 +183,6 @@ fn crawler(input: &str) -> EntryTree {
 
 fn update_parent_size(f: &File, tree: &mut DirSizeTree) {
     for a in f.0.ancestors().skip(1) {
-        println!("ancestor: {:8>}", a);
         if let Some(dir) = tree.get_mut(a) {
             *dir += f.1;
         } else {
@@ -186,13 +198,10 @@ fn total_size(map: &EntryTree) -> DirSizeTree {
             Entry::File(f) => Some(f),
             Entry::Dir(_) => None,
         })
-        // .map(|(_, f)| f.get_file().unwrap())
         .for_each(|f| update_parent_size(&f, &mut dt));
 
     dt
 }
-
-fn solve_part_1() {}
 
 #[cfg(test)]
 mod tests {
