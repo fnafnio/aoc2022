@@ -20,6 +20,26 @@ enum Entry {
     Dir(Dir),
 }
 
+impl Entry {
+    fn is_file(&self) -> bool {
+        match self {
+            Entry::File(_) => true,
+            Entry::Dir(_) => false,
+        }
+    }
+
+    // fn get_file(&self) -> Option<File> {
+    //     match self {
+    //         Entry::File(f) => Some(*f.clone()),
+    //         Entry::Dir(_) => None,
+    //     }
+    // }
+
+    fn is_dir(&self) -> bool {
+        !self.is_file()
+    }
+}
+
 #[derive(Debug)]
 enum Line {
     Command(Command),
@@ -45,9 +65,10 @@ impl PartialEq for Command {
 struct Dir(Utf8PathBuf);
 
 #[derive(Debug, PartialEq, Eq)]
-struct File(usize, Utf8PathBuf);
+struct File(Utf8PathBuf, usize);
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
+use itertools::Itertools;
 use nom::{
     self,
     branch::alt,
@@ -78,7 +99,7 @@ fn parse_entry(i: &str) -> IResult<&str, Entry> {
 fn parse_file(i: &str) -> IResult<&str, File> {
     map(
         separated_pair(nom::character::complete::u64, multispace1, parse_path),
-        |(size, path)| File(size as _, path),
+        |(size, path)| File(path, size as _),
     )(i)
 }
 
@@ -103,41 +124,73 @@ fn parse_line(i: &str) -> IResult<&str, Line> {
     ))(i)
 }
 
-fn crawler(input: &str) -> HashMap<Utf8PathBuf, Entry> {
-    let mut pwd = Utf8PathBuf::new();
+type EntryTree = HashMap<Utf8PathBuf, Entry>;
+type DirSizeTree = HashMap<Utf8PathBuf, usize>;
+
+fn crawler(input: &str) -> EntryTree {
+    let mut pwd: Utf8PathBuf = Utf8PathBuf::from("/");
 
     let lines = input
         .lines()
         .map(|l| all_consuming(parse_line)(l).finish().unwrap().1);
 
     lines
-        .filter_map(|l| dbg!(match l {
-            Line::Command(Command::Ls) | Line::Entry(Entry::Dir(_)) => None,
-            Line::Command(Command::Cd(path)) => match path.as_str() {
-                "/" => {
-                    pwd = Utf8PathBuf::from("/");
-                    Some((pwd.clone(), Entry::Dir(Dir(pwd.clone()))))
+        .filter_map(|l| {
+            match l {
+                Line::Command(Command::Ls) | Line::Entry(Entry::Dir(_)) => None,
+                Line::Command(Command::Cd(path)) => match path.as_str() {
+                    "/" => {
+                        // // pwd = Utf8PathBuf::from("/");
+                        // let tmp = Utf8PathBuf::from("/").canonicalize().unwrap();
+                        // println!("Canonical form: {:?}", tmp);
+                        // // pwd = Utf8PathBuf::from(&mp);
+                        // Some((pwd.clone(), Entry::Dir(Dir(pwd.clone()))))
+                        Some((pwd.clone(), Entry::Dir(Dir(pwd.clone()))))
+                    }
+                    ".." => {
+                        pwd.pop();
+                        Some(((pwd.clone()), Entry::Dir(Dir(pwd.clone()))))
+                    }
+                    p => {
+                        pwd.push(p);
+                        // pwd = Utf8PathBuf::from(pwd.canonicalize().unwrap());
+                        Some((pwd.clone(), Entry::Dir(Dir(pwd.clone()))))
+                    }
+                },
+                Line::Entry(Entry::File(file)) => {
+                    let p = pwd.join(file.0.clone());
+                    let file = File(p.clone(), file.1);
+                    let file = Entry::File(file);
+                    Some((p, file))
                 }
-                ".." => {
-                    pwd.pop();
-                    Some(((pwd.clone()), Entry::Dir(Dir(pwd.clone()))))
-                }
-                p => {
-                    pwd.push(p);
-                    Some((path.clone(), Entry::Dir(Dir(pwd.clone()))))
-                }
-            },
-            Line::Entry(Entry::File(file)) => {
-                let p = pwd.join(file.1.clone());
-                Some((p, Entry::File(file)))
-            },
+            }
         })
-        
-    )
         .collect()
 }
 
-fn total_size() {}
+fn update_parent_size(f: &File, tree: &mut DirSizeTree) {
+    for a in f.0.ancestors().skip(1) {
+        println!("ancestor: {:8>}", a);
+        if let Some(dir) = tree.get_mut(a) {
+            *dir += f.1;
+        } else {
+            tree.insert(a.into(), f.1);
+        }
+    }
+}
+
+fn total_size(map: &EntryTree) -> DirSizeTree {
+    let mut dt: DirSizeTree = Default::default();
+    map.iter()
+        .filter_map(|(_, f)| match f {
+            Entry::File(f) => Some(f),
+            Entry::Dir(_) => None,
+        })
+        // .map(|(_, f)| f.get_file().unwrap())
+        .for_each(|f| update_parent_size(&f, &mut dt));
+
+    dt
+}
 
 fn solve_part_1() {}
 
@@ -145,6 +198,7 @@ fn solve_part_1() {}
 mod tests {
     use super::*;
     use assert_ok::assert_ok;
+    use itertools::Itertools;
 
     const TEST: &str = r"$ cd /
 $ ls
@@ -173,7 +227,23 @@ $ ls
 
     #[test]
     fn test_crawler() {
-        crawler(TEST);
+        let entries = crawler(TEST);
+        entries
+            .iter()
+            .sorted_by(|b, a| b.0.cmp(a.0))
+            .for_each(|(p, e)| println!("{} @ {:?}", p, e));
+
+        let dt = total_size(&entries);
+        for x in dt.iter().sorted_by(|x, y| x.1.cmp(y.1)) {
+            println!("{:?}", x)
+        }
+
+        let result: usize = dt
+            .values()
+            .filter(|&&size| dbg!(size) < 100_000)
+            .sum1()
+            .unwrap();
+        assert_eq!(dbg!(result), 95437)
     }
 
     #[test]
