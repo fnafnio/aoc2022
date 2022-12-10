@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::Solver;
 
 pub struct Day7;
@@ -24,9 +26,9 @@ enum Line {
     Entry(Entry),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Command {
-    Cd(String),
+    Cd(Utf8PathBuf),
     Ls,
 }
 
@@ -48,22 +50,18 @@ struct File(usize, Utf8PathBuf);
 use camino::Utf8PathBuf;
 use nom::{
     self,
-    branch::{alt, permutation},
-    bytes::complete::{is_not, tag, take_while, take_while1},
-    character::complete::{
-        alphanumeric1, anychar, char, digit1, line_ending, multispace0, multispace1, one_of,
-    },
-    combinator::{map, map_parser, map_res},
-    multi::{self, many1},
-    sequence::{delimited, preceded, separated_pair, terminated},
-    IResult,
+    branch::alt,
+    bytes::complete::{tag, take_while1},
+    character::complete::{multispace0, multispace1},
+    combinator::{all_consuming, map},
+    sequence::{preceded, separated_pair, terminated},
+    Finish, IResult,
 };
 
+const LEGAL_CHARS: &str = "abcdefghijklmnopqrstuvwxyz./";
+
 fn parse_path(i: &str) -> IResult<&str, Utf8PathBuf> {
-    map(
-        take_while1(|c: char| "abcdefghijklmnopqrstuvwxyz./".contains(c)),
-        Into::into,
-    )(i)
+    map(take_while1(|c: char| LEGAL_CHARS.contains(c)), Into::into)(i)
 }
 
 fn parse_dir(i: &str) -> IResult<&str, Dir> {
@@ -72,13 +70,9 @@ fn parse_dir(i: &str) -> IResult<&str, Dir> {
 
 fn parse_entry(i: &str) -> IResult<&str, Entry> {
     alt((
-        map(parse_dir, |d| Entry::Dir((d))),
+        map(parse_dir, |d| Entry::Dir(d)),
         map(parse_file, |f| Entry::File(f)),
     ))(i)
-}
-
-fn not_space(s: &str) -> IResult<&str, &str> {
-    is_not(" \t\r\n")(s)
 }
 
 fn parse_file(i: &str) -> IResult<&str, File> {
@@ -88,78 +82,122 @@ fn parse_file(i: &str) -> IResult<&str, File> {
     )(i)
 }
 
-fn parse_cmd_cd(i: &str) -> IResult<&str, Command> {
-    let (i, _) = tag("ls")(i)?;
-    Ok((i, Command::Ls))
-}
-
-fn cmd_cd(i: &str) -> IResult<&str, Command> {
-    let (i, (_, s)) = separated_pair(tag("cd"), multispace0, not_space)(i)?;
-    Ok((i, Command::Cd(s.to_string())))
-}
-fn cmd_ls(i: &str) -> IResult<&str, Command> {
-    let (i, _) = tag("ls")(i)?;
-    Ok((i, Command::Ls))
-}
-
 fn parse_cmd(i: &str) -> IResult<&str, Command> {
-    alt((cmd_cd, cmd_ls))(i)
+    let cd = map(terminated(tag("ls"), multispace0), |_| Command::Ls);
+    let ls = map(
+        separated_pair(tag("cd"), multispace0, parse_path),
+        |(_, p)| Command::Cd(p),
+    );
+    alt((cd, ls))(i)
 }
 
 fn line_cmd(i: &str) -> IResult<&str, Command> {
-    let (i, cmd) = preceded(tag("$ "), alt((cmd_ls, cmd_cd)))(i)?;
+    let (i, cmd) = preceded(tag("$ "), parse_cmd)(i)?;
     Ok((i, cmd))
 }
 
 fn parse_line(i: &str) -> IResult<&str, Line> {
     alt((
-        map(parse_cmd, |cmd| Line::Command(cmd)),
+        map(line_cmd, |cmd| Line::Command(cmd)),
         map(parse_entry, |ent| Line::Entry(ent)),
     ))(i)
 }
 
-// fn line_entry(i:&str ) -> IResult<&str, Entry> {
+fn crawler(input: &str) -> HashMap<Utf8PathBuf, Entry> {
+    let mut pwd = Utf8PathBuf::new();
 
-// }
+    let lines = input
+        .lines()
+        .map(|l| all_consuming(parse_line)(l).finish().unwrap().1);
+
+    lines
+        .filter_map(|l| dbg!(match l {
+            Line::Command(Command::Ls) | Line::Entry(Entry::Dir(_)) => None,
+            Line::Command(Command::Cd(path)) => match path.as_str() {
+                "/" => {
+                    pwd = Utf8PathBuf::from("/");
+                    Some((pwd.clone(), Entry::Dir(Dir(pwd.clone()))))
+                }
+                ".." => {
+                    pwd.pop();
+                    Some(((pwd.clone()), Entry::Dir(Dir(pwd.clone()))))
+                }
+                p => {
+                    pwd.push(p);
+                    Some((path.clone(), Entry::Dir(Dir(pwd.clone()))))
+                }
+            },
+            Line::Entry(Entry::File(file)) => {
+                let p = pwd.join(file.1.clone());
+                Some((p, Entry::File(file)))
+            },
+        })
+        
+    )
+        .collect()
+}
+
+fn total_size() {}
+
+fn solve_part_1() {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use assert_ok::assert_ok;
-    use nom::{combinator::all_consuming, Finish};
-    use test_case::test_case;
 
     const TEST: &str = r"$ cd /
-    $ ls
-    dir a
-    14848514 b.txt
-    8504156 c.dat
-    dir d
-    $ cd a
-    $ ls
-    dir e
-    29116 f
-    2557 g
-    62596 h.lst
-    $ cd e
-    $ ls
-    584 i
-    $ cd ..
-    $ cd ..
-    $ cd d
-    $ ls
-    4060174 j
-    8033020 d.log
-    5626152 d.ext
-    7214296 k";
+$ ls
+dir a
+14848514 b.txt
+8504156 c.dat
+dir d
+$ cd a
+$ ls
+dir e
+29116 f
+2557 g
+62596 h.lst
+$ cd e
+$ ls
+584 i
+$ cd ..
+$ cd ..
+$ cd d
+$ ls
+4060174 j
+8033020 d.log
+5626152 d.ext
+7214296 k
+";
+
+    #[test]
+    fn test_crawler() {
+        crawler(TEST);
+    }
+
+    #[test]
+    fn test_stuff() {
+        let (rest, cmd) = assert_ok!(parse_line("$ cd .."));
+        println!("{:?}", (rest, cmd));
+        let (rest, cmd) = assert_ok!(parse_cmd("cd /"));
+        println!("{:?}", (rest, cmd));
+        let (rest, cmd) = assert_ok!(line_cmd("$ cd /"));
+        println!("{:?}", (rest, cmd));
+        let (rest, cmd) = assert_ok!(parse_line("$ ls "));
+        println!("{:?}", (rest, cmd));
+    }
 
     #[test]
     fn all_input() {
-        let lines = TEST
-            .lines()
-            .map(|l| all_consuming(parse_line)(l).finish().unwrap().1);
-            for line in lines {
-                println!("{:?}", line)
-            }
+        let lines = TEST.lines().map(|l| {
+            // println!("{}", l);
+            all_consuming(parse_line)(l).finish().unwrap().1
+        });
+
+        for line in lines {
+            println!("{:?}", line)
+        }
     }
 
     // #[test_case("$ ls", Command::Ls)]
