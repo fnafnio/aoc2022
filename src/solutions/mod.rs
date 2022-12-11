@@ -24,6 +24,7 @@ mod day_21;
 mod day_22;
 mod day_23;
 mod day_24;
+mod day_25;
 
 pub use day_1::Day as Day1;
 pub use day_2::Day as Day2;
@@ -49,3 +50,4 @@ pub use day_21::Day as Day21;
 pub use day_22::Day as Day22;
 pub use day_23::Day as Day23;
 pub use day_24::Day as Day24;
+pub use day_25::Day as Day25;
