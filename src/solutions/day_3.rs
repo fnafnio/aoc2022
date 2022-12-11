@@ -4,9 +4,9 @@ use itertools::Itertools;
 
 use crate::Solver;
 
-pub struct Day3;
+pub struct Day;
 
-impl Solver for Day3 {
+impl Solver for Day {
     fn part_1(&self, input: &str) -> String {
         solve_1(input).to_string()
     }

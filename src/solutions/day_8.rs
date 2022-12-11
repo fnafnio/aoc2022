@@ -3,11 +3,11 @@ use std::fmt::Display;
 use crate::Solver;
 use itertools::*;
 
-pub struct Day8;
+pub struct Day;
 
 // type Forrest = Ve
 
-impl Solver for Day8 {
+impl Solver for Day {
     fn part_1(&self, input: &str) -> String {
         let forest = parse_forest(input);
         let mut visible = prepare_visible(&forest);
@@ -134,7 +134,7 @@ fn parse_forest(input: &str) -> Vec<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Day8, Solver};
+    use super::{Day, Solver};
     use assert_ok::assert_ok;
     const TEST: &str = r"30373
 25512
@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn solver_part_1() {
-        let result: String = Day8.part_1(TEST);
+        let result: String = Day.part_1(TEST);
         assert_eq!(&result, "21")
     }
 }

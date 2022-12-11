@@ -3,9 +3,9 @@ use std::collections::BinaryHeap;
 
 use crate::Solver;
 
-pub struct Day1;
+pub struct Day;
 
-impl Solver for Day1 {
+impl Solver for Day {
     fn part_1(&self, input: &str) -> String {
         solve_1(input).to_string()
     }

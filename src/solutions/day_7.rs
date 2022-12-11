@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use crate::Solver;
 
-pub struct Day7;
+pub struct Day;
 
-impl Solver for Day7 {
+impl Solver for Day {
     fn part_1(&self, input: &str) -> String {
         let entries = crawler(input);
 

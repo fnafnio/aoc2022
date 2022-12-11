@@ -2,9 +2,9 @@ use itertools::Itertools;
 
 use crate::Solver;
 
-pub struct Day5;
+pub struct Day;
 
-impl Solver for Day5 {
+impl Solver for Day {
     fn part_1(&self, input: &str) -> String {
         let (s, m) = prepare_input(input);
         solve_part1(&mut s.clone(), &m)
