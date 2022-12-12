@@ -29,27 +29,45 @@ impl Solver for Day {
 
 #[derive(Debug)]
 struct Grid {
-    x: usize,
-    y: usize,
-    field: Vec<String>,
+    size: (usize, usize),
+    origin: Point,
+    field: Vec<char>,
 }
 
 impl Grid {
     fn new(x: usize, y: usize) -> Self {
-        // let field: Vec<char> = vec!['.'; x * y];
-        let field = vec![str::repeat(".", x * y)];
-        Self { x, y, field }
+        let field: Vec<char> = vec!['.'; x * y];
+        Self {
+            size: (x, y),
+            origin: Point {
+                x: x as isize / 2,
+                y: y as isize / 2,
+            },
+            field,
+        }
+    }
+
+    fn clear(&mut self) {
+        self.field.iter_mut().for_each(|c| *c = '.');
+    }
+
+    fn get_index(&self, p: &Point) -> usize {
+        let r = self.origin + *p;
+        let x = usize::try_from(r.x).unwrap();
+        let y = usize::try_from(r.y).unwrap();
+
+        x * self.size.0 + y
     }
 
     fn set_coord(&mut self, p: &Point, new: char) -> Option<()> {
-        let line: &mut String = self
-            .field
-            .get_mut(usize::try_from(p.y).expect("index is negative"))
-            .unwrap();
+        // let line: &mut String = self
+        //     .field
+        //     .get_mut(usize::try_from(p.y).expect("index is negative"))
+        //     .unwrap();
+        let index = self.get_index(p);
+        self.field.get_mut(index).map(|c| *c = new);
 
-        line.rep
-
-        None
+        Some(())
 
         // if let Some(c) = self.field.get_mut(self.x * p.y as usize + p.x as usize) {
         //     *c = new;
@@ -62,10 +80,10 @@ impl Grid {
     }
 
     fn draw(&self) -> String {
-        let mut result = String::with_capacity((self.x * self.y) as _);
+        let mut result = String::with_capacity((self.size.0 * self.size.1) as _);
         self.field
             .iter()
-            .chunks(self.x as _)
+            .chunks(self.size.0 as _)
             .into_iter()
             .for_each(|chunk| {
                 let mut s: String = chunk.collect();
@@ -107,6 +125,7 @@ impl Point {
 
     fn step_tail(&mut self, step: Direction, head: &Point) {
         let diff_abs = (*head - *self).abs();
+        
         if diff_abs.x > 1 {
             // move after in x direction
             match diff_abs.y {
@@ -201,13 +220,14 @@ impl Rope {
     }
 
     pub fn step(&mut self, step: Direction) {
-        let mut it = self.knots.iter_mut();
+        let mut it = self.knots.iter_mut().enumerate();
 
-        let head = it.next().unwrap();
+        let (_, head) = it.next().unwrap();
         head.step_head(step);
+        println!("{head:?} moved by to {step:?}");
         let mut prev = *head;
-
-        for t in it {
+        for (i, t) in it {
+            println!("Move knot {i} to {t:?}");
             t.step_tail(step, &prev);
             prev = *t;
         }
@@ -287,7 +307,7 @@ mod tests {
 
     use super::{parse_movement, series_of_motions, Point, Rope};
 
-    const TEST_SHORT: &str = "R 4
+    const CASE_1: &str = "R 4
 U 4
 L 3
 D 1
@@ -296,7 +316,7 @@ D 1
 L 5
 R 2";
 
-    const TEST_LONG: &str = "R 5
+    const CASE_2: &str = "R 5
 U 8
 L 8
 D 3
@@ -307,20 +327,20 @@ U 20";
 
     #[test]
     fn test_parser() {
-        for line in TEST_SHORT.lines() {
+        for line in CASE_1.lines() {
             let l = assert_ok!(parse_movement(line));
             println!("{:?}", l);
         }
     }
 
-    #[test_case(TEST_SHORT => 13)]
-    #[test_case(TEST_LONG => 88)]
+    #[test_case(CASE_1 => 13)]
+    #[test_case(CASE_2 => 88)]
     fn short_rope(input: &str) -> usize {
         series_of_motions(input, 1)
     }
 
-    #[test_case(TEST_SHORT => 1)]
-    #[test_case(TEST_LONG => 36)]
+    #[test_case(CASE_1 => 1)]
+    #[test_case(CASE_2 => 36)]
 
     fn long_rope(input: &str) -> usize {
         series_of_motions(input, 9)
