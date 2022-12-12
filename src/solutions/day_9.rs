@@ -27,6 +27,7 @@ impl Solver for Day {
     }
 }
 
+#[derive(Debug)]
 struct Grid {
     x: usize,
     y: usize,
@@ -40,7 +41,8 @@ impl Grid {
     }
 
     fn set_coord(&mut self, p: &Point, new: char) {
-        if let Some(c) = self.field.get_mut(dbg!(self.x * p.y as usize + p.x as usize)) {
+        dbg!((p, new));
+        if let Some(c) = self.field.get_mut(self.x * p.y as usize + p.x as usize) {
             *c = new;
         }
     }
