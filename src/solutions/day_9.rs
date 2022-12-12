@@ -31,20 +31,34 @@ impl Solver for Day {
 struct Grid {
     x: usize,
     y: usize,
-    field: Vec<char>,
+    field: Vec<String>,
 }
 
 impl Grid {
     fn new(x: usize, y: usize) -> Self {
-        let field: Vec<char> = vec!['.'; x * y];
+        // let field: Vec<char> = vec!['.'; x * y];
+        let field = vec![str::repeat(".", x * y)];
         Self { x, y, field }
     }
 
-    fn set_coord(&mut self, p: &Point, new: char) {
-        dbg!((p, new));
-        if let Some(c) = self.field.get_mut(self.x * p.y as usize + p.x as usize) {
-            *c = new;
-        }
+    fn set_coord(&mut self, p: &Point, new: char) -> Option<()> {
+        let line: &mut String = self
+            .field
+            .get_mut(usize::try_from(p.y).expect("index is negative"))
+            .unwrap();
+
+        line.rep
+
+        None
+
+        // if let Some(c) = self.field.get_mut(self.x * p.y as usize + p.x as usize) {
+        //     *c = new;
+        // }
+    }
+
+    fn set_relative(&mut self, p: &Point, rel: &Point, new: char) {
+        let set = *p + *rel;
+        self.set_coord(&set, new);
     }
 
     fn draw(&self) -> String {
@@ -173,29 +187,30 @@ impl Default for Rope {
     }
 }
 
-const LL: Point = Point { x: 0, y: 0 };
-const UR: Point = Point { x: 5, y: 4 };
+const LL: Point = Point { x: -5, y: -5 };
+const UR: Point = Point { x: 15, y: 15 };
 
 impl Rope {
     fn new_with_len(l: usize) -> Self {
         assert!(l > 0);
 
         let mut rope = Self {
-            knots: vec![Default::default(); l+1],
+            knots: vec![Default::default(); l + 1],
         };
         rope
     }
 
     pub fn step(&mut self, step: Direction) {
-        self.get_head_mut().step_head(step);
-        let old_tail = self.knots.clone();
-        let old_it = old_tail.iter();
+        let mut it = self.knots.iter_mut();
 
-        for (i, (h, t)) in old_it.zip(self.knots.iter_mut().skip(1)).enumerate() {
-            println!("Moving Knot: {} at {:?} after {:?}", i, t, h);
-            t.step_tail(step, h);
+        let head = it.next().unwrap();
+        head.step_head(step);
+        let mut prev = *head;
+
+        for t in it {
+            t.step_tail(step, &prev);
+            prev = *t;
         }
-        draw_field(self, &LL, &UR);
     }
 
     fn get_head_mut(&mut self) -> &mut Point {
@@ -266,6 +281,7 @@ fn series_of_motions(input: &str, length: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
+    use test_case::test_case;
 
     use assert_ok::assert_ok;
 
@@ -297,24 +313,16 @@ U 20";
         }
     }
 
-    #[test]
-    fn short_rope() {
-        let visited = series_of_motions(TEST_SHORT, 1);
-
-        assert_eq!(visited, 13)
+    #[test_case(TEST_SHORT => 13)]
+    #[test_case(TEST_LONG => 88)]
+    fn short_rope(input: &str) -> usize {
+        series_of_motions(input, 1)
     }
 
-    #[test]
-    fn long_rope_t1() {
-        let visited = series_of_motions(TEST_SHORT, 9);
+    #[test_case(TEST_SHORT => 1)]
+    #[test_case(TEST_LONG => 36)]
 
-        assert_eq!(visited, 1);
-    }
-
-    #[test]
-    fn long_rope() {
-        let visited = series_of_motions(TEST_LONG, 9);
-
-        assert_eq!(visited, 36);
+    fn long_rope(input: &str) -> usize {
+        series_of_motions(input, 9)
     }
 }
