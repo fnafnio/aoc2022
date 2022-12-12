@@ -1,13 +1,14 @@
 use std::{
     collections::HashSet,
-    ops::{Add, AddAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, Deref, DerefMut, Sub, SubAssign},
 };
 
+use itertools::Itertools;
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{digit1, multispace1},
-    combinator,
+    combinator::{self, all_consuming},
     sequence::separated_pair,
     IResult,
 };
@@ -18,12 +19,56 @@ pub struct Day;
 
 impl Solver for Day {
     fn part_1(&self, input: &str) -> String {
-        series_of_motions(input).to_string()
+        series_of_motions(input, 1).to_string()
     }
 
     fn part_2(&self, input: &str) -> String {
         todo!()
     }
+}
+
+struct Grid {
+    x: usize,
+    y: usize,
+    field: Vec<char>,
+}
+
+impl Grid {
+    fn new(x: usize, y: usize) -> Self {
+        let field: Vec<char> = vec!['.'; x * y];
+        Self { x, y, field }
+    }
+
+    fn set_coord(&mut self, p: &Point, new: char) {
+        if let Some(c) = self.field.get_mut(dbg!(self.x * p.y as usize + p.x as usize)) {
+            *c = new;
+        }
+    }
+
+    fn draw(&self) -> String {
+        let mut result = String::with_capacity((self.x * self.y) as _);
+        self.field
+            .iter()
+            .chunks(self.x as _)
+            .into_iter()
+            .for_each(|chunk| {
+                let mut s: String = chunk.collect();
+                result.push_str(&s);
+                result.push('\n');
+            });
+        result
+    }
+}
+
+fn draw_field(r: &Rope, ll: &Point, ur: &Point) {
+    let span = (*ur - *ll).abs();
+    let mut g = Grid::new(span.x.try_into().unwrap(), span.y.try_into().unwrap());
+
+    for (knot, new) in r.knots.iter().zip('0'..'9') {
+        g.set_coord(knot, new);
+    }
+    print!("{}", g.draw());
+    println!("");
 }
 
 #[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq)]
@@ -40,25 +85,29 @@ impl Point {
         }
     }
 
-    fn step_tail(step: Direction, head: &Point, tail: &mut Point) {
-        let diff_abs = (*head - *tail).abs();
+    fn step_head(&mut self, step: Direction) {
+        *self += step.into();
+    }
+
+    fn step_tail(&mut self, step: Direction, head: &Point) {
+        let diff_abs = (*head - *self).abs();
         if diff_abs.x > 1 {
             // move after in x direction
             match diff_abs.y {
-                0 => *tail += step.into(),
+                0 => *self += step.into(),
                 1 => {
-                    *tail += step.into();
-                    tail.y = head.y
+                    *self += step.into();
+                    self.y = head.y
                 }
                 _ => unimplemented!(),
             };
         } else if diff_abs.y > 1 {
             // we are too far away in y direction
             match diff_abs.x {
-                0 => *tail += step.into(),
+                0 => *self += step.into(),
                 1 => {
-                    *tail += step.into();
-                    tail.x = head.x
+                    *self += step.into();
+                    self.x = head.x
                 }
                 _ => unimplemented!(),
             }
@@ -113,28 +162,50 @@ impl Sub for Point {
 
 #[derive(Clone, Debug)]
 struct Rope {
-    head: Point,
-    tail: Vec<Point>,
+    knots: Vec<Point>,
 }
 
 impl Default for Rope {
     fn default() -> Self {
-        let mut tail = Vec::new();
-        tail.push(Default::default());
-        Self { head: Default::default(), tail }
+        Self::new_with_len(1)
     }
 }
 
+const LL: Point = Point { x: 0, y: 0 };
+const UR: Point = Point { x: 5, y: 4 };
+
 impl Rope {
-    pub fn step(&mut self, step: Direction) {
-        self.step_head(step);
-        for t in self.tail.iter_mut() {
-            Point::step_tail(step, &self.head, t);
-        }
+    fn new_with_len(l: usize) -> Self {
+        assert!(l > 0);
+
+        let mut rope = Self {
+            knots: vec![Default::default(); l+1],
+        };
+        rope
     }
 
-    fn step_head(&mut self, step: Direction) {
-        self.head += step.into();
+    pub fn step(&mut self, step: Direction) {
+        self.get_head_mut().step_head(step);
+        let old_tail = self.knots.clone();
+        let old_it = old_tail.iter();
+
+        for (i, (h, t)) in old_it.zip(self.knots.iter_mut().skip(1)).enumerate() {
+            println!("Moving Knot: {} at {:?} after {:?}", i, t, h);
+            t.step_tail(step, h);
+        }
+        draw_field(self, &LL, &UR);
+    }
+
+    fn get_head_mut(&mut self) -> &mut Point {
+        self.knots.first_mut().expect("Tails vector is empty!")
+    }
+
+    fn get_head(&self) -> &Point {
+        self.knots.first().expect("Tails vector is empty!")
+    }
+
+    fn get_tail(&self) -> &Point {
+        self.knots.last().expect("Tails vector is empty!")
     }
 }
 
@@ -147,7 +218,10 @@ enum Direction {
 }
 
 #[derive(Debug, Copy, Clone)]
-struct Movement(Direction, usize);
+struct Movement {
+    dir: Direction,
+    steps: usize,
+}
 
 fn parse_direction(i: &str) -> IResult<&str, Direction> {
     use Direction::*;
@@ -166,18 +240,22 @@ fn parse_number(i: &str) -> IResult<&str, usize> {
 fn parse_movement(i: &str) -> IResult<&str, Movement> {
     combinator::map(
         separated_pair(parse_direction, multispace1, parse_number),
-        |(dir, range)| Movement(dir, range),
+        |(dir, range)| Movement { dir, steps: range },
     )(i)
 }
 
-fn series_of_motions(input: &str) -> usize {
-    let mut rope = Rope::default();
+fn series_of_motions(input: &str, length: usize) -> usize {
+    let mut rope = Rope::new_with_len(length);
     let mut set = HashSet::new();
-    let it = input.lines().map(|l| parse_movement(l).unwrap().1);
+
+    let it = input
+        .lines()
+        .map(|l| all_consuming(parse_movement)(l).unwrap().1);
+
     for m in it {
-        for _ in 0..m.1 {
-            rope.step(m.0);
-            set.insert(rope.tail.clone());
+        for _ in 0..m.steps {
+            rope.step(m.dir);
+            set.insert(rope.get_tail().clone());
         }
     }
     set.len()
@@ -191,7 +269,7 @@ mod tests {
 
     use super::{parse_movement, series_of_motions, Point, Rope};
 
-    const TEST: &str = "R 4
+    const TEST_SHORT: &str = "R 4
 U 4
 L 3
 D 1
@@ -200,18 +278,41 @@ D 1
 L 5
 R 2";
 
+    const TEST_LONG: &str = "R 5
+U 8
+L 8
+D 3
+R 17
+D 10
+L 25
+U 20";
+
     #[test]
     fn test_parser() {
-        for line in TEST.lines() {
+        for line in TEST_SHORT.lines() {
             let l = assert_ok!(parse_movement(line));
             println!("{:?}", l);
         }
     }
 
     #[test]
-    fn test_movement() {
-        let visited = series_of_motions(TEST);
+    fn short_rope() {
+        let visited = series_of_motions(TEST_SHORT, 1);
 
         assert_eq!(visited, 13)
+    }
+
+    #[test]
+    fn long_rope_t1() {
+        let visited = series_of_motions(TEST_SHORT, 9);
+
+        assert_eq!(visited, 1);
+    }
+
+    #[test]
+    fn long_rope() {
+        let visited = series_of_motions(TEST_LONG, 9);
+
+        assert_eq!(visited, 36);
     }
 }
