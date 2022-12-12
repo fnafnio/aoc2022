@@ -1,4 +1,7 @@
-use std::{ops::{Add, AddAssign, Sub, SubAssign}, collections::HashSet};
+use std::{
+    collections::HashSet,
+    ops::{Add, AddAssign, Sub, SubAssign},
+};
 
 use nom::{
     branch::alt,
@@ -34,6 +37,31 @@ impl Point {
         Self {
             x: self.x.abs(),
             y: self.y.abs(),
+        }
+    }
+
+    fn step_tail(step: Direction, head: &Point, tail: &mut Point) {
+        let diff_abs = (*head - *tail).abs();
+        if diff_abs.x > 1 {
+            // move after in x direction
+            match diff_abs.y {
+                0 => *tail += step.into(),
+                1 => {
+                    *tail += step.into();
+                    tail.y = head.y
+                }
+                _ => unimplemented!(),
+            };
+        } else if diff_abs.y > 1 {
+            // we are too far away in y direction
+            match diff_abs.x {
+                0 => *tail += step.into(),
+                1 => {
+                    *tail += step.into();
+                    tail.x = head.x
+                }
+                _ => unimplemented!(),
+            }
         }
     }
 }
@@ -83,44 +111,30 @@ impl Sub for Point {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Debug)]
 struct Rope {
     head: Point,
-    tail: Point,
+    tail: Vec<Point>,
+}
+
+impl Default for Rope {
+    fn default() -> Self {
+        let mut tail = Vec::new();
+        tail.push(Default::default());
+        Self { head: Default::default(), tail }
+    }
 }
 
 impl Rope {
     pub fn step(&mut self, step: Direction) {
         self.step_head(step);
-        self.step_tail(step);
+        for t in self.tail.iter_mut() {
+            Point::step_tail(step, &self.head, t);
+        }
     }
 
     fn step_head(&mut self, step: Direction) {
         self.head += step.into();
-    }
-    fn step_tail(&mut self, step: Direction) {
-        let diff_abs = (self.head - self.tail).abs();
-        if diff_abs.x > 1 {
-            // move after in x direction
-            match diff_abs.y {
-                0 => self.tail += step.into(),
-                1 => {
-                    self.tail += step.into();
-                    self.tail.y = self.head.y
-                }
-                _ => unimplemented!(),
-            };
-        } else if diff_abs.y > 1 {
-            // we are too far away in y direction
-            match diff_abs.x {
-                0 => self.tail += step.into(),
-                1 => {
-                    self.tail += step.into();
-                    self.tail.x = self.head.x
-                }
-                _ => unimplemented!(),
-            }
-        }
     }
 }
 
@@ -163,7 +177,7 @@ fn series_of_motions(input: &str) -> usize {
     for m in it {
         for _ in 0..m.1 {
             rope.step(m.0);
-            set.insert(rope.tail);
+            set.insert(rope.tail.clone());
         }
     }
     set.len()
@@ -196,8 +210,8 @@ R 2";
 
     #[test]
     fn test_movement() {
-        let set = series_of_motions();
+        let visited = series_of_motions(TEST);
 
-        assert_eq!(, 13)
+        assert_eq!(visited, 13)
     }
 }
