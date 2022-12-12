@@ -1,3 +1,4 @@
+#![allow(unused)]
 #![feature(binary_heap_drain_sorted)]
 #![feature(int_roundings)]
 
