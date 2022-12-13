@@ -1,6 +1,7 @@
 #![allow(unused)]
 #![feature(binary_heap_drain_sorted)]
 #![feature(int_roundings)]
+#![feature(exclusive_range_pattern)]
 
 use color_eyre::eyre;
 use eyre::{anyhow, Error};

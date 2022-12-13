@@ -1,6 +1,7 @@
 use std::{
     collections::HashSet,
     ops::{Add, AddAssign, Deref, DerefMut, Sub, SubAssign},
+    time::Duration,
 };
 
 use itertools::Itertools;
@@ -23,7 +24,7 @@ impl Solver for Day {
     }
 
     fn part_2(&self, input: &str) -> String {
-        todo!()
+        series_of_motions(input, 9).to_string()
     }
 }
 
@@ -60,18 +61,10 @@ impl Grid {
     }
 
     fn set_coord(&mut self, p: &Point, new: char) -> Option<()> {
-        // let line: &mut String = self
-        //     .field
-        //     .get_mut(usize::try_from(p.y).expect("index is negative"))
-        //     .unwrap();
         let index = self.get_index(p);
         self.field.get_mut(index).map(|c| *c = new);
 
         Some(())
-
-        // if let Some(c) = self.field.get_mut(self.x * p.y as usize + p.x as usize) {
-        //     *c = new;
-        // }
     }
 
     fn set_relative(&mut self, p: &Point, rel: &Point, new: char) {
@@ -83,6 +76,7 @@ impl Grid {
         let mut result = String::with_capacity((self.size.0 * self.size.1) as _);
         self.field
             .iter()
+            .rev()
             .chunks(self.size.0 as _)
             .into_iter()
             .for_each(|chunk| {
@@ -94,11 +88,13 @@ impl Grid {
     }
 }
 
-fn draw_field(r: &Rope, ll: &Point, ur: &Point) {
-    let span = (*ur - *ll).abs();
+const DRAW: &str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+fn draw_field(r: &Rope) {
+    let span = (UR - LL).abs();
     let mut g = Grid::new(span.x.try_into().unwrap(), span.y.try_into().unwrap());
 
-    for (knot, new) in r.knots.iter().zip('0'..'9') {
+    for (knot, new) in r.knots.iter().zip(DRAW.chars()) {
         g.set_coord(knot, new);
     }
     print!("{}", g.draw());
@@ -109,6 +105,15 @@ fn draw_field(r: &Rope, ll: &Point, ur: &Point) {
 struct Point {
     x: isize,
     y: isize,
+}
+
+impl From<(isize, isize)> for Point {
+    fn from(value: (isize, isize)) -> Self {
+        Self {
+            x: value.0,
+            y: value.1,
+        }
+    }
 }
 
 impl Point {
@@ -124,37 +129,50 @@ impl Point {
     }
 
     fn step_tail(&mut self, step: Direction, head: &Point) {
-        let diff_abs = (*head - *self).abs();
-        
-        if diff_abs.x > 1 {
-            // move after in x direction
-            match diff_abs.y {
-                0 => *self += step.into(),
-                1 => {
-                    *self += step.into();
-                    self.y = head.y
-                }
-                _ => unimplemented!(),
-            };
-        } else if diff_abs.y > 1 {
-            // we are too far away in y direction
-            match diff_abs.x {
-                0 => *self += step.into(),
-                1 => {
-                    *self += step.into();
-                    self.x = head.x
-                }
-                _ => unimplemented!(),
-            }
+        let diff = (*head - *self);
+
+        // I've lifted this from fasterthanli.me
+        let dp = match (diff.x, diff.y) {
+            // overlapping
+            (0, 0) => (0, 0),
+            // touching up/left/down/right
+            (0, 1) | (1, 0) | (0, -1) | (-1, 0) => (0, 0),
+            // touching diagonally
+            (1, 1) | (1, -1) | (-1, 1) | (-1, -1) => (0, 0),
+            // need to move up/left/down/right
+            (0, 2) => (0, 1),
+            (0, -2) => (0, -1),
+            (2, 0) => (1, 0),
+            (-2, 0) => (-1, 0),
+            // need to move to the right diagonally
+            (2, 1) => (1, 1),
+            (2, -1) => (1, -1),
+            // need to move to the left diagonally
+            (-2, 1) => (-1, 1),
+            (-2, -1) => (-1, -1),
+            // need to move up/down diagonally
+            (1, 2) => (1, 1),
+            (-1, 2) => (-1, 1),
+            (1, -2) => (1, -1),
+            (-1, -2) => (-1, -1),
+            // 🆕 need to move diagonally
+            (-2, -2) => (-1, -1),
+            (-2, 2) => (-1, 1),
+            (2, -2) => (1, -1),
+            (2, 2) => (1, 1),
+            _ => panic!("unhandled case: tail - head = {diff:?}"),
         }
+        .into();
+
+        *self += dp;
     }
 }
 
 impl From<Direction> for Point {
     fn from(value: Direction) -> Self {
         match value {
-            Direction::Up => Point { x: 0, y: 1 },
-            Direction::Down => Point { x: 0, y: -1 },
+            Direction::Up => Point { x: 0, y: -1 },
+            Direction::Down => Point { x: 0, y: 1 },
             Direction::Left => Point { x: -1, y: 0 },
             Direction::Right => Point { x: 1, y: 0 },
         }
@@ -206,8 +224,8 @@ impl Default for Rope {
     }
 }
 
-const LL: Point = Point { x: -5, y: -5 };
-const UR: Point = Point { x: 15, y: 15 };
+const LL: Point = Point { x: -20, y: -20 };
+const UR: Point = Point { x: 20, y: 20 };
 
 impl Rope {
     fn new_with_len(l: usize) -> Self {
@@ -224,10 +242,8 @@ impl Rope {
 
         let (_, head) = it.next().unwrap();
         head.step_head(step);
-        println!("{head:?} moved by to {step:?}");
         let mut prev = *head;
         for (i, t) in it {
-            println!("Move knot {i} to {t:?}");
             t.step_tail(step, &prev);
             prev = *t;
         }
@@ -289,12 +305,15 @@ fn series_of_motions(input: &str, length: usize) -> usize {
         .lines()
         .map(|l| all_consuming(parse_movement)(l).unwrap().1);
 
+    let mut s = String::new();
+
     for m in it {
-        for _ in 0..m.steps {
+        for i in 0..m.steps {
             rope.step(m.dir);
             set.insert(rope.get_tail().clone());
         }
     }
+
     set.len()
 }
 
