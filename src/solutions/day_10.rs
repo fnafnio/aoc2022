@@ -1,5 +1,5 @@
 use core::fmt;
-use std::collections::VecDeque;
+use std::{collections::VecDeque, ops::Rem};
 
 use crate::Solver;
 
@@ -7,11 +7,19 @@ pub struct Day;
 
 impl Solver for Day {
     fn part_1(&self, input: &str) -> String {
-        todo!()
+        solve_part_1(input).to_string()
     }
 
     fn part_2(&self, input: &str) -> String {
         todo!()
+    }
+}
+
+fn signal_cycle(c: usize) -> bool {
+    if c < 20 {
+        false
+    } else {
+        (c - 20).rem(40) == 0
     }
 }
 
@@ -28,7 +36,7 @@ impl Cpu {
         Self {
             program,
             current,
-            cycle: 0,
+            cycle: 1,
             reg_x: 1,
         }
     }
@@ -81,7 +89,7 @@ impl Instruction {
             let addx = map(preceded(pair(tag("addx"), multispace1), parse_isize), |i| {
                 Instruction::Addx(i)
             });
-            alt((noop, addx))(i)
+            all_consuming(alt((noop, addx)))(i)
         }
     }
 
@@ -93,11 +101,12 @@ impl Instruction {
     }
 }
 
+use itertools::Itertools;
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::multispace1,
-    combinator::{self, map, value},
+    combinator::{self, all_consuming, map, value},
     sequence::{pair, preceded, separated_pair},
     IResult,
 };
@@ -106,10 +115,26 @@ fn parse_isize(i: &str) -> IResult<&str, isize> {
     combinator::map(nom::character::complete::i64, |n| n as _)(i)
 }
 
+fn solve_part_1(i: &str) -> isize {
+    let program = i
+        .lines()
+        .map(|l| Instruction::parse(l).unwrap().1)
+        .collect();
+    let mut cpu = Cpu::new(program);
+    let mut signals = vec![];
+    while cpu.step() {
+        if signal_cycle(cpu.cycle) {
+            let signal = cpu.cycle as isize * cpu.reg_x;
+            signals.push(signal);
+        }
+    }
+    signals.iter().sum1().unwrap()
+}
 #[cfg(test)]
 mod tests {
 
     use super::*;
+    use itertools::Itertools;
     use test_case::test_case;
 
     const CASE_1: &str = "noop\naddx 3\naddx -5";
@@ -142,4 +167,26 @@ mod tests {
     fn test_parser(i: &str) -> Instruction {
         Instruction::parse(i).unwrap().1
     }
+
+    #[test]
+    fn test_parser_full() {
+        for line in CASE_2.lines() {
+            assert_ok::assert_ok!(Instruction::parse(line));
+        }
+    }
+
+    #[test]
+    fn full_case() {
+        let signals = solve_part_1(CASE_2);
+
+        let expected = vec![420, 1140, 1800, 2940, 2880, 3960];
+        for (s, e) in signals.iter().zip(expected.iter()) {
+            assert_eq!(*s, *e);
+        }
+        let total: isize = expected.iter().sum1().unwrap();
+        let sum_signal: isize = signals.iter().sum1().unwrap();
+        assert_eq!(sum_signal, total);
+    }
+
+    const CASE_2: &str = include_str!("test_9_long");
 }
