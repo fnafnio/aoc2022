@@ -4,9 +4,9 @@ use itertools::Itertools;
 const START_OF_PACKET_LEN: usize = 4;
 const START_OF_MSG_LEN: usize = 14;
 
-pub struct Day6;
+pub struct Day;
 
-impl Solver for Day6 {
+impl Solver for Day {
     fn part_1(&self, input: &str) -> String {
         let (_, s) = find_marker(input, START_OF_PACKET_LEN)
             .expect("There has to bee a marker in the input");

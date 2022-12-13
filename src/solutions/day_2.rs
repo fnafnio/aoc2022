@@ -1,8 +1,8 @@
 use crate::Solver;
 
-pub struct Day2;
+pub struct Day;
 
-impl Solver for Day2 {
+impl Solver for Day {
     fn part_1(&self, input: &str) -> String {
         part1::solve(input).to_string()
     }

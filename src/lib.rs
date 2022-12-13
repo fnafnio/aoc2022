@@ -1,5 +1,7 @@
+#![allow(unused)]
 #![feature(binary_heap_drain_sorted)]
 #![feature(int_roundings)]
+#![feature(exclusive_range_pattern)]
 
 use color_eyre::eyre;
 use eyre::{anyhow, Error};
@@ -8,7 +10,11 @@ use solutions::*;
 
 mod solutions;
 
-const SOLVERS: &[&dyn Solver] = &[&Day1, &Day2, &Day3, &Day4, &Day5, &Day6, &Day7];
+// should be done with macros or something
+const SOLVERS: &[&dyn Solver] = &[
+    &Day1, &Day2, &Day3, &Day4, &Day5, &Day6, &Day7, &Day8, &Day9, &Day10, &Day11, &Day12, &Day13,
+    &Day14, &Day15, &Day16, &Day17, &Day18, &Day19, &Day20, &Day21, &Day22, &Day23, &Day24, &Day25,
+];
 
 pub fn run_solver(day: Day, part: Part, input: &str) -> String {
     // assert!(day < SOLVERS.len() && day > 0);

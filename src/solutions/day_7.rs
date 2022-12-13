@@ -2,12 +2,9 @@ use std::collections::HashMap;
 
 use crate::Solver;
 
-pub struct Day7;
+pub struct Day;
 
-const MIN_FREE: usize = 30_000_000;
-const DISK_SIZE: usize = 70_000_000;
-
-impl Solver for Day7 {
+impl Solver for Day {
     fn part_1(&self, input: &str) -> String {
         let entries = crawler(input);
 
@@ -46,6 +43,9 @@ impl Solver for Day7 {
         result.to_string()
     }
 }
+
+const MIN_FREE: usize = 30_000_000;
+const DISK_SIZE: usize = 70_000_000;
 
 #[derive(Debug)]
 enum Entry {
