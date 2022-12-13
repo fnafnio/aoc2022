@@ -7,7 +7,7 @@ use nom::{
     combinator,
     multi::{many1, separated_list0, separated_list1},
     number::complete,
-    sequence::{preceded, tuple},
+    sequence::{preceded, tuple, terminated},
     IResult,
 };
 
@@ -116,12 +116,12 @@ struct Monkey {
 
 impl Monkey {
     fn parse(i: &str) -> IResult<&str, Self> {
-        let (i, number) = parse_monkey(i)?;
-        let (i, items) = starting_items(i)?;
-        let (i, op) = Operation::parse(i)?;
-        let (i, test) = parse_divisor(i)?;
-        let (i, yes) = parse_true(i)?;
-        let (i, no) = parse_false(i)?;
+        let (i, number) = terminated(parse_monkey(i), tag("\n"))?;
+        let (i, items) = terminated(starting_items(i), tag("\n"))?;
+        let (i, op) = terminated(Operation::parse(i), tag("\n"))?;
+        let (i, test) = terminated(parse_divisor(i), tag("\n"))?;
+        let (i, yes) = terminated(parse_true(i), tag("\n"))?;
+        let (i, no) = terminated(parse_false(i), tag("\n"))?;
         Ok((
             i,
             Self {
@@ -133,6 +133,10 @@ impl Monkey {
             },
         ))
     }
+}
+
+fn parse_monkey_list(i: &str) -> IResult<&str, Vec<Monkey>> {
+  separated_list0(multispace0(input), f)
 }
 
 #[cfg(test)]
