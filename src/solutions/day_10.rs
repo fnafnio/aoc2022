@@ -11,7 +11,7 @@ impl Solver for Day {
     }
 
     fn part_2(&self, input: &str) -> String {
-        todo!()
+        draw_crt(input).screen
     }
 }
 
@@ -36,7 +36,7 @@ impl Cpu {
         Self {
             program,
             current,
-            cycle: 1,
+            cycle: 0,
             reg_x: 1,
         }
     }
@@ -59,6 +59,40 @@ impl Cpu {
             true
         } else {
             false
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Crt {
+    screen: String,
+}
+
+impl Crt {
+    fn draw(&mut self, cpu: &Cpu) {
+        let c = cpu.cycle.rem(40);
+        let x = cpu.reg_x;
+
+        if c == 0 {
+            self.screen.push('\n');
+        }
+
+        if x <= 0 {
+            self.screen.push('.');
+        } else {
+            if ((x - 1)..(x + 2)).contains(&(c as isize)) {
+                self.screen.push('#');
+            } else {
+                self.screen.push('.');
+            }
+        }
+    }
+}
+
+impl Default for Crt {
+    fn default() -> Self {
+        Self {
+            screen: Default::default(),
         }
     }
 }
@@ -116,11 +150,7 @@ fn parse_isize(i: &str) -> IResult<&str, isize> {
 }
 
 fn solve_part_1(i: &str) -> isize {
-    let program = i
-        .lines()
-        .map(|l| Instruction::parse(l).unwrap().1)
-        .collect();
-    let mut cpu = Cpu::new(program);
+    let mut cpu = launch_program(i);
     let mut signals = vec![];
     while cpu.step() {
         if signal_cycle(cpu.cycle) {
@@ -129,6 +159,29 @@ fn solve_part_1(i: &str) -> isize {
         }
     }
     signals.iter().sum1().unwrap()
+}
+
+fn launch_program(i: &str) -> Cpu {
+    let program = i
+        .lines()
+        .map(|l| Instruction::parse(l).unwrap().1)
+        .collect();
+    let mut cpu = Cpu::new(program);
+    cpu
+}
+
+fn draw_crt(i: &str) -> Crt {
+    let mut cpu = launch_program(i);
+    let mut crt = Crt::default();
+    // crt.draw(&cpu);
+
+    loop {
+        crt.draw(&cpu);
+        if !cpu.step() {
+            break;
+        }
+    }
+    crt
 }
 #[cfg(test)]
 mod tests {
@@ -180,12 +233,20 @@ mod tests {
         let signals = solve_part_1(CASE_2);
 
         let expected = vec![420, 1140, 1800, 2940, 2880, 3960];
-        for (s, e) in signals.iter().zip(expected.iter()) {
-            assert_eq!(*s, *e);
-        }
+
         let total: isize = expected.iter().sum1().unwrap();
-        let sum_signal: isize = signals.iter().sum1().unwrap();
-        assert_eq!(sum_signal, total);
+        assert_eq!(signals, total);
+    }
+
+    const CRT_IMAGE: &str = "##..##..##..##..##..##..##..##..##..##..\n###...###...###...###...###...###...###.\n####....####....####....####....####....\n#####.....#####.....#####.....#####.....\n######......######......######......####\n#######.......#######.......#######.....\n";
+
+    #[test]
+    fn check_part_2() {
+        let screen = draw_crt(CASE_2).screen;
+
+        print!("{}", screen);
+        println!("");
+        assert_eq!(&screen, CRT_IMAGE);
     }
 
     const CASE_2: &str = include_str!("test_9_long");
