@@ -18,11 +18,11 @@ pub struct Day;
 
 impl Solver for Day {
     fn part_1(&self, input: &str) -> String {
-        solve_part_1(input).to_string()
+        solve_rounds(input, 20, 3).to_string()
     }
 
     fn part_2(&self, input: &str) -> String {
-        todo!()
+        solve_rounds(input, 10000, 1).to_string()
     }
 }
 
@@ -152,10 +152,12 @@ impl Monkey {
         self.items.push(item);
     }
 
-    fn inspect_items(&mut self) -> Vec<(usize, u64)> {
+    fn inspect_items(&mut self, worry_div: u64) -> Vec<(usize, u64)> {
+        assert_ne!(worry_div, 0);
+
         let mut v = vec![];
         for &i in self.items.iter() {
-            let new = self.op.eval(i) / 3;
+            let new = (self.op.eval(i) / worry_div);
             let m = self.test(new);
             v.push((m, new));
             self.inspected += 1;
@@ -172,20 +174,15 @@ impl Monkey {
     }
 }
 
-fn solve_part_1(i: &str) -> u64 {
+fn solve_rounds(i: &str, rounds: usize, worry_div: u64) -> u64 {
     let (_, mut monkeys) = parse_monkey_list(i).expect("something wrong with parsing");
-
     let mut items: Vec<(usize, u64)> = vec![];
-    for _ in 0..20 {
-        for i in 0..monkeys.len() {
-            let items = {
-                let monkey = &mut monkeys[i];
-                monkey.inspect_items()
-            };
-            for (m, item) in items.into_iter() {
-                monkeys[m].catch(item);
-            }
-        }
+    let divisor_product = monkeys.iter().map(|m| m.test).product();
+
+    dbg!(divisor_product);
+
+    for _ in 0..rounds {
+        do_round(&mut monkeys, worry_div, divisor_product);
     }
 
     let (x, y) = monkeys
@@ -195,6 +192,18 @@ fn solve_part_1(i: &str) -> u64 {
         .next()
         .unwrap();
     x.inspected * y.inspected
+}
+
+fn do_round(monkeys: &mut Vec<Monkey>, worry_div: u64, divisor_product: u64) {
+    for i in 0..monkeys.len() {
+        let items = {
+            let monkey = &mut monkeys[i];
+            monkey.inspect_items(worry_div)
+        };
+        for (m, item) in items.into_iter() {
+            monkeys[m].catch(item.rem(divisor_product));
+        }
+    }
 }
 
 fn parse_monkey_list(i: &str) -> IResult<&str, Vec<Monkey>> {
@@ -236,7 +245,7 @@ Test: divisible by 17
   If false: throw to monkey 1";
     #[test]
     fn test_solver_part1() {
-        assert_eq!(solve_part_1(TEST_CASE), 10605)
+        assert_eq!(solve_rounds(TEST_CASE), 10605)
     }
 
     #[test]
