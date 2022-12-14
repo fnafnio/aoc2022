@@ -1,5 +1,6 @@
-use std::{collections::VecDeque, str::FromStr};
+use std::ops::Rem;
 
+use itertools::Itertools;
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -17,7 +18,7 @@ pub struct Day;
 
 impl Solver for Day {
     fn part_1(&self, input: &str) -> String {
-        todo!()
+        solve_part_1(input).to_string()
     }
 
     fn part_2(&self, input: &str) -> String {
@@ -25,16 +26,15 @@ impl Solver for Day {
     }
 }
 
-fn starting_items(i: &str) -> IResult<&str, VecDeque<u32>> {
+fn starting_items(i: &str) -> IResult<&str, Vec<u64>> {
     preceded(tag("Starting items: "), item_list)(i)
 }
 
-fn item_list(i: &str) -> IResult<&str, VecDeque<u32>> {
-    let number_list = separated_list0(tag(", "), nom::character::complete::u32);
-    combinator::map(number_list, |l| VecDeque::from(l))(i)
+fn item_list(i: &str) -> IResult<&str, Vec<u64>> {
+    separated_list0(tag(", "), nom::character::complete::u64)(i)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum Operation {
     Mul(Term, Term),
     Add(Term, Term),
@@ -43,7 +43,7 @@ enum Operation {
 fn parse_monkey(i: &str) -> IResult<&str, usize> {
     delimited(
         tag("Monkey "),
-        combinator::map(nom::character::complete::u32, |u| u as usize),
+        combinator::map(nom::character::complete::u64, |u| u as usize),
         tag(":"),
     )(i)
 }
@@ -64,29 +64,43 @@ impl Operation {
             }
         }
     }
+
+    fn eval(self, old: u64) -> u64 {
+        match self {
+            Operation::Mul(x, y) => x.eval(old) * y.eval(old),
+            Operation::Add(x, y) => x.eval(old) + y.eval(old),
+        }
+    }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum Term {
     Old,
-    Val(u32),
+    Val(u64),
 }
 
 impl Term {
     fn parse(i: &str) -> IResult<&str, Self> {
         alt((
             combinator::map(tag("old"), |_| Self::Old),
-            combinator::map(nom::character::complete::u32, |u| Self::Val(u)),
+            combinator::map(nom::character::complete::u64, |u| Self::Val(u)),
         ))(i)
+    }
+
+    fn eval(self, old: u64) -> u64 {
+        match self {
+            Term::Old => old,
+            Term::Val(v) => v,
+        }
     }
 }
 
 fn parse_usize(i: &str) -> IResult<&str, usize> {
-    combinator::map(nom::character::complete::u32, |u| u as usize)(i)
+    combinator::map(nom::character::complete::u64, |u| u as usize)(i)
 }
 
-fn parse_divisor(i: &str) -> IResult<&str, u32> {
-    preceded(tag("Test: divisible by "), nom::character::complete::u32)(i)
+fn parse_divisor(i: &str) -> IResult<&str, u64> {
+    preceded(tag("Test: divisible by "), nom::character::complete::u64)(i)
 }
 
 fn parse_true(i: &str) -> IResult<&str, usize> {
@@ -104,9 +118,10 @@ fn parse_false(i: &str) -> IResult<&str, usize> {
 
 #[derive(Debug, PartialEq)]
 struct Monkey {
-    items: VecDeque<u32>,
+    inspected: u64,
+    items: Vec<u64>,
     op: Operation,
-    test: u32,
+    test: u64,
     yes: usize,
     no: usize,
 }
@@ -114,20 +129,16 @@ struct Monkey {
 impl Monkey {
     fn parse(i: &str) -> IResult<&str, Self> {
         let (i, number) = terminated(parse_monkey, multispace0)(i)?;
-        println!("number: {number}");
         let (i, items) = terminated(starting_items, multispace0)(i)?;
-        println!("items: {items:?}");
         let (i, op) = terminated(Operation::parse, multispace0)(i)?;
-        println!("op: {op:?}");
         let (i, test) = terminated(parse_divisor, multispace0)(i)?;
-        println!("test: {test}");
         let (i, yes) = terminated(parse_true, multispace0)(i)?;
-        println!("yes: {yes}");
         let (i, no) = terminated(parse_false, multispace0)(i)?;
-        println!("no: {no}");
+
         Ok((
             i,
             Self {
+                inspected: 0,
                 items,
                 op,
                 test,
@@ -136,6 +147,54 @@ impl Monkey {
             },
         ))
     }
+
+    fn catch(&mut self, item: u64) {
+        self.items.push(item);
+    }
+
+    fn inspect_items(&mut self) -> Vec<(usize, u64)> {
+        let mut v = vec![];
+        for &i in self.items.iter() {
+            let new = self.op.eval(i) / 3;
+            let m = self.test(new);
+            v.push((m, new));
+            self.inspected += 1;
+        }
+        self.items.clear();
+        v
+    }
+
+    fn test(&self, item: u64) -> usize {
+        match item.rem(self.test) == 0 {
+            true => self.yes,
+            false => self.no,
+        }
+    }
+}
+
+fn solve_part_1(i: &str) -> u64 {
+    let (_, mut monkeys) = parse_monkey_list(i).expect("something wrong with parsing");
+
+    let mut items: Vec<(usize, u64)> = vec![];
+    for _ in 0..20 {
+        for i in 0..monkeys.len() {
+            let items = {
+                let monkey = &mut monkeys[i];
+                monkey.inspect_items()
+            };
+            for (m, item) in items.into_iter() {
+                monkeys[m].catch(item);
+            }
+        }
+    }
+
+    let (x, y) = monkeys
+        .iter()
+        .sorted_by(|b, a| a.inspected.cmp(&b.inspected))
+        .tuples()
+        .next()
+        .unwrap();
+    x.inspected * y.inspected
 }
 
 fn parse_monkey_list(i: &str) -> IResult<&str, Vec<Monkey>> {
@@ -175,13 +234,16 @@ Operation: new = old + 3
 Test: divisible by 17
   If true: throw to monkey 0
   If false: throw to monkey 1";
+    #[test]
+    fn test_solver_part1() {
+        assert_eq!(solve_part_1(TEST_CASE), 10605)
+    }
 
     #[test]
     fn test_monkey() {
         // let i = TEST_CASE.split("\n\n").next().unwrap();
         let i = "Monkey 0:\nStarting items: 79, 98\nOperation: new = old * 19\nTest: divisible by 23\nIf true: throw to monkey 2\nIf false: throw to monkey 3\n";
         let (i, m) = assert_ok!(Monkey::parse(i));
-        println!("Monkey -> {:?}", m);
     }
 
     #[test]
@@ -194,8 +256,6 @@ Test: divisible by 17
     fn test_starting_items() {
         let i = "Starting items: 79, 98";
         let (i, items) = assert_ok!(starting_items(i));
-        println!("i: {}\n\n", i);
-        println!("items: {:?}", items);
     }
 
     #[test]
@@ -214,7 +274,5 @@ Test: divisible by 17
     #[test]
     fn test_all_monkeys() {
         let x = assert_ok::assert_ok!(parse_monkey_list(TEST_CASE));
-        println!("{}\n", x.0);
-        println!("{:?}", x.1);
     }
 }
