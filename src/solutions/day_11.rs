@@ -3,11 +3,11 @@ use std::{collections::VecDeque, str::FromStr};
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::{complete::one_of, streaming::multispace0},
+    character::complete::{multispace0, one_of},
     combinator,
     multi::{many1, separated_list0, separated_list1},
     number::complete,
-    sequence::{preceded, tuple, terminated},
+    sequence::{delimited, preceded, terminated, tuple},
     IResult,
 };
 
@@ -31,7 +31,7 @@ fn starting_items(i: &str) -> IResult<&str, VecDeque<u32>> {
 
 fn item_list(i: &str) -> IResult<&str, VecDeque<u32>> {
     let number_list = separated_list0(tag(", "), nom::character::complete::u32);
-    combinator::map(number_list, |l| l.into())(i)
+    combinator::map(number_list, |l| VecDeque::from(l))(i)
 }
 
 #[derive(Debug, PartialEq)]
@@ -41,16 +41,21 @@ enum Operation {
 }
 
 fn parse_monkey(i: &str) -> IResult<&str, usize> {
-    preceded(
-        tag("Monkey: "),
+    delimited(
+        tag("Monkey "),
         combinator::map(nom::character::complete::u32, |u| u as usize),
+        tag(":"),
     )(i)
 }
 
 impl Operation {
     fn parse(i: &str) -> IResult<&str, Self> {
         let (i, _) = tag("Operation: new = ")(i)?;
-        let (i, (t1, op, t2)) = tuple((Term::parse, one_of("+*"), Term::parse))(i)?;
+        let (i, (t1, op, t2)) = tuple((
+            Term::parse,
+            delimited(multispace0, one_of("+*"), multispace0),
+            Term::parse,
+        ))(i)?;
         match op {
             '+' => Ok((i, Self::Add(t1, t2))),
             '*' => Ok((i, Self::Mul(t1, t2))),
@@ -60,14 +65,6 @@ impl Operation {
         }
     }
 }
-
-// impl FromStr for Operation {
-//     type Err;
-
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         todo!()
-//     }
-// }
 
 #[derive(Debug, PartialEq)]
 enum Term {
@@ -116,12 +113,18 @@ struct Monkey {
 
 impl Monkey {
     fn parse(i: &str) -> IResult<&str, Self> {
-        let (i, number) = terminated(parse_monkey(i), tag("\n"))?;
-        let (i, items) = terminated(starting_items(i), tag("\n"))?;
-        let (i, op) = terminated(Operation::parse(i), tag("\n"))?;
-        let (i, test) = terminated(parse_divisor(i), tag("\n"))?;
-        let (i, yes) = terminated(parse_true(i), tag("\n"))?;
-        let (i, no) = terminated(parse_false(i), tag("\n"))?;
+        let (i, number) = terminated(parse_monkey, multispace0)(i)?;
+        println!("number: {number}");
+        let (i, items) = terminated(starting_items, multispace0)(i)?;
+        println!("items: {items:?}");
+        let (i, op) = terminated(Operation::parse, multispace0)(i)?;
+        println!("op: {op:?}");
+        let (i, test) = terminated(parse_divisor, multispace0)(i)?;
+        println!("test: {test}");
+        let (i, yes) = terminated(parse_true, multispace0)(i)?;
+        println!("yes: {yes}");
+        let (i, no) = terminated(parse_false, multispace0)(i)?;
+        println!("no: {no}");
         Ok((
             i,
             Self {
@@ -136,13 +139,16 @@ impl Monkey {
 }
 
 fn parse_monkey_list(i: &str) -> IResult<&str, Vec<Monkey>> {
-  separated_list0(multispace0(input), f)
+    many1(Monkey::parse)(i)
 }
 
 #[cfg(test)]
 mod tests {
+    use assert_ok::assert_ok;
 
-    const TEST_CASE: &str = "Monkey 0:
+    use super::*;
+
+    const TEST_CASE: &str = r"Monkey 0:
 Starting items: 79, 98
 Operation: new = old * 19
 Test: divisible by 23
@@ -169,4 +175,46 @@ Operation: new = old + 3
 Test: divisible by 17
   If true: throw to monkey 0
   If false: throw to monkey 1";
+
+    #[test]
+    fn test_monkey() {
+        // let i = TEST_CASE.split("\n\n").next().unwrap();
+        let i = "Monkey 0:\nStarting items: 79, 98\nOperation: new = old * 19\nTest: divisible by 23\nIf true: throw to monkey 2\nIf false: throw to monkey 3\n";
+        let (i, m) = assert_ok!(Monkey::parse(i));
+        println!("Monkey -> {:?}", m);
+    }
+
+    #[test]
+    fn test_parse_false() {
+        let i = "If false: throw to monkey 3";
+        let (i, u) = assert_ok!(parse_false(i));
+    }
+
+    #[test]
+    fn test_starting_items() {
+        let i = "Starting items: 79, 98";
+        let (i, items) = assert_ok!(starting_items(i));
+        println!("i: {}\n\n", i);
+        println!("items: {:?}", items);
+    }
+
+    #[test]
+    fn test_operation() {
+        let i = "Operation: new = old * 19";
+        let (i, o) = assert_ok!(Operation::parse(i));
+    }
+
+    #[test]
+    fn test_monkey_number() {
+        let i = TEST_CASE.lines().next().unwrap();
+        let (i, u) = assert_ok!(parse_monkey(i));
+        assert_eq!(u, 0);
+    }
+
+    #[test]
+    fn test_all_monkeys() {
+        let x = assert_ok::assert_ok!(parse_monkey_list(TEST_CASE));
+        println!("{}\n", x.0);
+        println!("{:?}", x.1);
+    }
 }
