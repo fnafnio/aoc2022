@@ -9,6 +9,7 @@ fn main() -> color_eyre::Result<()> {
 
 use anyhow::anyhow;
 use derive_more::{Add, AddAssign, Sub, SubAssign};
+use itertools::Itertools;
 use nom::bytes::complete::tag;
 use nom::combinator::map;
 use nom::sequence::separated_pair;
@@ -52,6 +53,42 @@ impl From<(usize, usize)> for Vec2 {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+enum Cell {
+    Air,
+    Rock,
+    Sand,
+}
+
+impl Into<char> for Cell {
+    fn into(self) -> char {
+        match self {
+            Cell::Air => ' ',
+            Cell::Rock => '#',
+            Cell::Sand => 'o',
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Grid {
+    grid: Vec<Cell>,
+    dim: Vec2,
+    offset: Vec2,
+}
+
+impl Grid {
+    fn from_paths(paths: Vec<Vec<Vec2>>) {
+        let x_min_max = paths
+            .iter()
+            .flat_map(|p| p.iter())
+            .map(|v| v.x)
+            .minmax()
+            .unwrap();
+        {}
+    }
+}
+
 #[cfg(test)]
 mod tests {
     const TEST: &str = "4     5  5
@@ -86,15 +123,12 @@ mod tests {
         );
         assert_eq!(
             Some(vec![
-                Vec2::from((503,4)),
-                Vec2::from((502,4)),
-                Vec2::from((502,9)),
-                Vec2::from((494,9)),
+                Vec2::from((503, 4)),
+                Vec2::from((502, 4)),
+                Vec2::from((502, 9)),
+                Vec2::from((494, 9)),
             ]),
             it.next()
         )
     }
 }
-
-
-
