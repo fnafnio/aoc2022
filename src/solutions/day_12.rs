@@ -8,11 +8,11 @@ pub struct Day;
 
 impl Solver for Day {
     fn part_1(&self, input: &str) -> String {
-        find(input).unwrap().to_string()
+        find_s_to_e(input).unwrap().to_string()
     }
 
     fn part_2(&self, input: &str) -> String {
-        todo!()
+        find_e_to_low(input).unwrap().to_string()
     }
 }
 
@@ -91,6 +91,10 @@ impl Grid {
         p.x < self.width && p.y < self.height
     }
 
+    fn is_border(&self, p: GridPoint) -> bool {
+        p.x == 0 || p.x == self.width - 1 || p.y == 0 || p.y == self.height - 1
+    }
+
     fn print(&self) {
         self.grid
             .iter()
@@ -105,7 +109,7 @@ impl Grid {
 
     fn get_neighbours(&self, p: GridPoint) -> impl Iterator<Item = GridPoint> + '_ {
         let deltas: [(isize, isize); 4] = [(-1, 0), (0, -1), (1, 0), (0, 1)];
-        let height = self.get_coord(p).expect("current out of bounds!").height();
+        let cur_height = self.get_coord(p).expect("current out of bounds!").height();
 
         deltas.into_iter().filter_map(move |(dx, dy)| {
             Some(GridPoint {
@@ -114,8 +118,8 @@ impl Grid {
             })
             .filter(|&s| self.in_bounds(s))
             .filter(|&s| {
-                let b = self.get_coord(s).expect("neighbour out of bounds").height();
-                height.abs_diff(b) < 2
+                let other_height = self.get_coord(s).expect("neighbour out of bounds").height();
+                other_height + 2 > cur_height
             })
         })
     }
@@ -150,22 +154,43 @@ use pathfinding::{directed::bfs::bfs, grid};
 
 use anyhow::{anyhow, Result};
 
-fn find(input: &str) -> Result<usize> {
+fn find_s_to_e(input: &str) -> Result<usize> {
     let g = Grid::parse(input).ok_or(anyhow!("failed to parse grid"))?;
 
     let start = g.start;
     let end = g.end;
-    g.print();
 
     let result = bfs(
         &start,
-        |&s| g.get_neighbours(s).collect::<Vec<GridPoint>>(),
-        |&s| g.get_coord(s).unwrap().height() == Cell::End.height(),
+        |&p| g.get_neighbours(p).collect::<Vec<GridPoint>>(),
+        |&p| p == end,
     )
     .ok_or(anyhow!("No path found!"))?;
 
+    Ok(result.len() - 1)
+}
 
-    Ok(result.len())
+fn find_e_to_low(input: &str) -> Result<usize> {
+    let g = Grid::parse(input).ok_or(anyhow!("failed to parse grid"))?;
+
+    // we search from highest point to lowest point at the border
+    let start = g.end;
+
+    let result = bfs(
+        &start,
+        |&p| g.get_neighbours(p).collect::<Vec<GridPoint>>(),
+        |&p| {
+            g.is_border(p)
+                && match g.get_coord(p) {
+                    Some(o) => o.height() == 0,
+                    None => false,
+                }
+        },
+    )
+    .ok_or(anyhow!("No path found!"))?;
+
+    Ok(result.len() - 1)
+    // Err(anyhow!("How did we end up here?"))
 }
 
 #[cfg(test)]
@@ -195,9 +220,14 @@ mod tests {
     }
 
     #[test]
-    fn test_find() {
-        let result = assert_ok!(find(INPUT));
+    fn test_find_s_to_e() {
+        let result = assert_ok!(find_s_to_e(INPUT));
         assert_eq!(result, 31)
-        // assert_eq!(find(input))
+    }
+
+    #[test]
+    fn test_find_e_to_low() {
+        let result = assert_ok!(find_e_to_low(INPUT));
+        assert_eq!(result, 29)
     }
 }
