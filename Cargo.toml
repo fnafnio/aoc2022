@@ -1,2 +1,2 @@
 [workspace]
-members = ["aoc-solver"]
+members = ["aoc-solver", "day_14"]

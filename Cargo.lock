@@ -41,6 +41,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc2022-day14"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "color-eyre",
+ "derive_more",
+ "itertools",
+ "nom",
+]
+
+[[package]]
 name = "assert_ok"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
