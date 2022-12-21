@@ -1,5 +1,6 @@
 extern crate derive_more;
 use derive_more::{Add, AddAssign, Sub, SubAssign};
+use itertools::Itertools;
 
 use crate::Solver;
 
@@ -76,18 +77,35 @@ impl From<(usize, usize)> for GridPoint {
 }
 
 impl Grid {
-    fn get_coord(&self, p: GridPoint) -> <&Cell> {
+    fn get_coord(&self, p: GridPoint) -> Option<&Cell> {
         let i = p.as_index(self.dim());
-        &self.grid[i]
+        self.grid.get(i)
+    }
+
+    fn get_coord_mut(&mut self, p: GridPoint) -> Option<&mut Cell> {
+        let i = p.as_index(self.dim());
+        self.grid.get_mut(i)
     }
 
     fn in_bounds(&self, p: GridPoint) -> bool {
         p.x < self.width && p.y < self.height
     }
 
+    fn print(&self) {
+        self.grid
+            .iter()
+            .map(|c| char::from(c.height() + b'a'))
+            .chunks(self.width)
+            .into_iter()
+            .for_each(|l| {
+                let s: String = l.collect();
+                println!("{s}")
+            })
+    }
+
     fn get_neighbours(&self, p: GridPoint) -> impl Iterator<Item = GridPoint> + '_ {
         let deltas: [(isize, isize); 4] = [(-1, 0), (0, -1), (1, 0), (0, 1)];
-        let height = self.get_coord(p).height();
+        let height = self.get_coord(p).expect("current out of bounds!").height();
 
         deltas.into_iter().filter_map(move |(dx, dy)| {
             Some(GridPoint {
@@ -96,17 +114,10 @@ impl Grid {
             })
             .filter(|&s| self.in_bounds(s))
             .filter(|&s| {
-                let b = self.get_coord(s).height();
-                height.abs_diff(b) <= 1
-            }).map(|c| {println!("gathered {c:?}"); c})
+                let b = self.get_coord(s).expect("neighbour out of bounds").height();
+                height.abs_diff(b) < 2
+            })
         })
-    }
-
-    fn walkable(&self, p: GridPoint, q: GridPoint) -> bool {
-        let a = self.get_coord(p).height();
-        let b = self.get_coord(q).height();
-
-        a.abs_diff(b) <= 1
     }
 
     fn dim(&self) -> (usize, usize) {
@@ -144,15 +155,17 @@ fn find(input: &str) -> Result<usize> {
 
     let start = g.start;
     let end = g.end;
+    g.print();
 
     let result = bfs(
         &start,
         |&s| g.get_neighbours(s).collect::<Vec<GridPoint>>(),
-        |&s| s == end,
+        |&s| g.get_coord(s).unwrap().height() == Cell::End.height(),
     )
     .ok_or(anyhow!("No path found!"))?;
 
-    Ok(result.len() - 1)
+
+    Ok(result.len())
 }
 
 #[cfg(test)]
