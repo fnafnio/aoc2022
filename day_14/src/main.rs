@@ -38,6 +38,10 @@ impl Vec2 {
     }
 }
 
+fn parse_path(input: &str) -> IResult<&str, Vec<Vec2>> {
+    nom::multi::separated_list1(tag(" -> "), Vec2::parse)(input)
+}
+
 fn complete_usize(input: &str) -> IResult<&str, usize> {
     map(nom::character::complete::u64, |u| u as usize)(input)
 }
@@ -66,4 +70,31 @@ mod tests {
 
     const INPUT: &str = "498,4 -> 498,6 -> 496,6
 503,4 -> 502,4 -> 502,9 -> 494,9";
+    use crate::parse_path;
+    use crate::Vec2;
+
+    #[test]
+    fn test_parse_path() {
+        let mut it = INPUT.lines().map(|l| parse_path(l).unwrap().1);
+        assert_eq!(
+            Some(vec![
+                Vec2::from((498, 4)),
+                Vec2::from((498, 6)),
+                Vec2::from((496, 6)),
+            ]),
+            it.next()
+        );
+        assert_eq!(
+            Some(vec![
+                Vec2::from((503,4)),
+                Vec2::from((502,4)),
+                Vec2::from((502,9)),
+                Vec2::from((494,9)),
+            ]),
+            it.next()
+        )
+    }
 }
+
+
+
