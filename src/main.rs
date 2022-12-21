@@ -27,7 +27,7 @@ fn main() -> color_eyre::Result<()> {
     let inner = Instant::now();
 
     let result = run_solver(day, part, &input);
-    
+
     let inner = inner.elapsed();
     let elapsed = total.elapsed();
     println!("{}", result);

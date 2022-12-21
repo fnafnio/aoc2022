@@ -11,3 +11,9 @@ impl Solver for Day {
         todo!()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const INPUT: &str = "";
+}

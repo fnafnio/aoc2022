@@ -16,8 +16,6 @@ impl Solver for Day {
     }
 }
 
-
-
 fn solve_1(input: &str) -> usize {
     input.lines().map(|l| compartment_check(l)).sum()
 }
@@ -72,12 +70,12 @@ mod tests {
 
     // const TEST: &str = include_str!("../input/day_3/test");
     const TEST: &str = "vJrwpWtwJgWrhcsFMMfFFhFp\njqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL\nPmmdzqPrVvPwwTWBwg\nwMqvLMZHhHMvwLHjbvcjnnSBnvTQFn\nttgJtRGJQctTZtZT\nCrZsJsPPZsGzwwsLwLmpwMDw\n";
-#[test_case(16, "vJrwpWtwJgWrhcsFMMfFFhFp")]
-#[test_case(38, "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL")]
-#[test_case(42, "PmmdzqPrVvPwwTWBwg")]
-#[test_case(22, "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn")]
-#[test_case(20, "ttgJtRGJQctTZtZT")]
-#[test_case(19, "CrZsJsPPZsGzwwsLwLmpwMDw")]
+    #[test_case(16, "vJrwpWtwJgWrhcsFMMfFFhFp")]
+    #[test_case(38, "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL")]
+    #[test_case(42, "PmmdzqPrVvPwwTWBwg")]
+    #[test_case(22, "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn")]
+    #[test_case(20, "ttgJtRGJQctTZtZT")]
+    #[test_case(19, "CrZsJsPPZsGzwwsLwLmpwMDw")]
     fn test_compartment_check(prio: usize, line: &str) {
         assert_eq!(prio, compartment_check(line))
     }

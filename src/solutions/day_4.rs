@@ -65,7 +65,6 @@ fn solve_2(input: &str) -> usize {
         .count()
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
