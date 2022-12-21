@@ -21,6 +21,10 @@ struct Vec2 {
 }
 
 impl Vec2 {
+    fn move_me(&mut self, trans: &Vec2) {
+        
+    }
+
     fn as_index(&self, (width, height): (usize, usize)) -> usize {
         (self.y * width + self.x) as usize
     }
@@ -78,14 +82,30 @@ struct Grid {
 }
 
 impl Grid {
-    fn from_paths(paths: Vec<Vec<Vec2>>) {
-        let x_min_max = paths
+    fn from_paths(paths: Vec<Vec<Vec2>>) -> anyhow::Result<Self> {
+        let (xmin, xmax) = paths
             .iter()
             .flat_map(|p| p.iter())
             .map(|v| v.x)
             .minmax()
-            .unwrap();
-        {}
+            .into_option()
+            .ok_or(anyhow!("failed to find minmax"))?;
+            
+        let (ymin, ymax) = paths
+            .iter()
+            .flat_map(|p| p.iter())
+            .map(|v| v.y)
+            .minmax()
+            .into_option()
+            .ok_or(anyhow!("failed to find minmax"))?;
+            
+        let min = Vec2::from((xmin, ymin));
+        let max = Vec2::from((xmax, ymax));
+
+        let offset = min -
+
+
+        Err(anyhow!("damn"))
     }
 }
 
