@@ -107,7 +107,24 @@ impl Grid {
             })
     }
 
-    fn get_neighbours(&self, p: GridPoint) -> impl Iterator<Item = GridPoint> + '_ {
+    fn get_rising_neighbours(&self, p: GridPoint) -> impl Iterator<Item = GridPoint> + '_ {
+        let deltas: [(isize, isize); 4] = [(-1, 0), (0, -1), (1, 0), (0, 1)];
+        let cur_height = self.get_coord(p).expect("current out of bounds!").height();
+
+        deltas.into_iter().filter_map(move |(dx, dy)| {
+            Some(GridPoint {
+                x: p.x.checked_add_signed(dx)?,
+                y: p.y.checked_add_signed(dy)?,
+            })
+            .filter(|&s| self.in_bounds(s))
+            .filter(|&s| {
+                let other_height = self.get_coord(s).expect("neighbour out of bounds").height();
+                other_height < cur_height + 2
+            })
+        })
+    }
+
+    fn get_downing_neighbours(&self, p: GridPoint) -> impl Iterator<Item = GridPoint> + '_ {
         let deltas: [(isize, isize); 4] = [(-1, 0), (0, -1), (1, 0), (0, 1)];
         let cur_height = self.get_coord(p).expect("current out of bounds!").height();
 
@@ -157,12 +174,12 @@ use anyhow::{anyhow, Result};
 fn find_s_to_e(input: &str) -> Result<usize> {
     let g = Grid::parse(input).ok_or(anyhow!("failed to parse grid"))?;
 
-    let start = g.start;
-    let end = g.end;
+    let end = g.start;
+    let start = g.end;
 
     let result = bfs(
         &start,
-        |&p| g.get_neighbours(p).collect::<Vec<GridPoint>>(),
+        |&p| g.get_downing_neighbours(p).collect::<Vec<GridPoint>>(),
         |&p| p == end,
     )
     .ok_or(anyhow!("No path found!"))?;
@@ -178,7 +195,7 @@ fn find_e_to_low(input: &str) -> Result<usize> {
 
     let result = bfs(
         &start,
-        |&p| g.get_neighbours(p).collect::<Vec<GridPoint>>(),
+        |&p| g.get_downing_neighbours(p).collect::<Vec<GridPoint>>(),
         |&p| {
             g.is_border(p)
                 && match g.get_coord(p) {
@@ -213,7 +230,7 @@ mod tests {
     #[test]
     fn test_get_neighbours() {
         let g = Grid::parse(INPUT).unwrap();
-        let v: Vec<GridPoint> = g.get_neighbours(g.start).collect();
+        let v: Vec<GridPoint> = g.get_rising_neighbours(g.start).collect();
         let correct = vec![GridPoint::from((0usize, 1usize)), (1, 0).into()];
         dbg!(correct);
         dbg!(v);
