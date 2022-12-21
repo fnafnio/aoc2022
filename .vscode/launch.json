@@ -39,9 +39,9 @@
                 }
             },
             "args": [
-                "9",
-                "2",
-                "input/day_9"
+                "12",
+                "1",
+                "input/day_12"
             ],
             "cwd": "${workspaceFolder}"
         },

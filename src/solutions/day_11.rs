@@ -245,7 +245,7 @@ Test: divisible by 17
   If false: throw to monkey 1";
     #[test]
     fn test_solver_part1() {
-        assert_eq!(solve_rounds(TEST_CASE), 10605)
+        assert_eq!(solve_rounds(TEST_CASE, 20, 3), 10605)
     }
 
     #[test]

@@ -12,6 +12,9 @@ struct Cli {
 }
 
 fn main() -> color_eyre::Result<()> {
+    use std::time::Instant;
+    let total = Instant::now();
+
     color_eyre::install()?;
     let cli = Cli::parse();
 
@@ -21,10 +24,15 @@ fn main() -> color_eyre::Result<()> {
     println!("Day {} Part {}", *day, part as usize);
 
     let input = std::fs::read_to_string(cli.path)?;
-    
-    let result = run_solver(day, part, &input);
+    let inner = Instant::now();
 
+    let result = run_solver(day, part, &input);
+    
+    let inner = inner.elapsed();
+    let elapsed = total.elapsed();
     println!("{}", result);
+    println!("solver: {:.2?}", inner);
+    println!("Elapsed: {:.2?}", elapsed);
 
     Ok(())
 }
