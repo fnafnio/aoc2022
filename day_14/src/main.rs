@@ -21,10 +21,6 @@ struct Vec2 {
 }
 
 impl Vec2 {
-    fn move_me(&mut self, trans: &Vec2) {
-        
-    }
-
     fn as_index(&self, (width, height): (usize, usize)) -> usize {
         (self.y * width + self.x) as usize
     }
@@ -90,7 +86,7 @@ impl Grid {
             .minmax()
             .into_option()
             .ok_or(anyhow!("failed to find minmax"))?;
-            
+
         let (ymin, ymax) = paths
             .iter()
             .flat_map(|p| p.iter())
@@ -98,14 +94,56 @@ impl Grid {
             .minmax()
             .into_option()
             .ok_or(anyhow!("failed to find minmax"))?;
-            
+
         let min = Vec2::from((xmin, ymin));
         let max = Vec2::from((xmax, ymax));
 
-        let offset = min -
+        let offset = min - (20, 20).into();
+        let dim = max - min + (40, 40).into();
 
+        println!("{offset:?}");
+        println!("{dim:?}");
 
-        Err(anyhow!("damn"))
+        let grid = Vec::with_capacity(dim.x * dim.y);
+
+        let mut s = Self { grid, dim, offset };
+
+        for p in paths.iter() {
+            s.set_path(&p, Cell::Rock)?;
+        }
+
+        Ok(s)
+    }
+
+    fn set_path(&mut self, path: &[Vec2], c: Cell) -> anyhow::Result<()> {
+        // let mut it = path.iter();
+        // let seed = it.next().ok_or(anyhow!("path empty"))?;
+        // it.scan(seed, |prev, x| println!("{x}"));
+        for (s, e) in path.iter().tuple_windows() {
+            let diff = *e - *s;
+            let s = *s - self.offset;
+            let e = *e - self.offset;
+            if diff.x != 0 && diff.y != 0 {
+                return Err(anyhow!("only straight paths supported"));
+            }
+
+            if diff.x != 0 {
+                // self.grid.as_mut_slice()[s.x+s.y..e.x+e.y*self.dim.x].fill(c);
+                self.grid
+                    .iter_mut()
+                    .skip(s.y * self.dim.x + s.x)
+                    .take(diff.x)
+                    .for_each(|field| *field = c);
+            }
+            if diff.y != 0 {
+                self.grid
+                    .iter_mut()
+                    .skip(s.y * self.dim.x + s.x)
+                    .step_by(self.dim.x)
+                    .for_each(|field| *field = c);
+            }
+        }
+        Ok(())
     }
 }
 
