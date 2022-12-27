@@ -45,6 +45,7 @@ name = "aoc2022-day14"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "assert_ok",
  "color-eyre",
  "derive_more",
  "itertools",
