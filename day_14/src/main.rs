@@ -1,4 +1,4 @@
-/* #![feature(int_roundings)]
+#![feature(int_roundings)]
 
 use std::fmt::Display;
 
@@ -404,4 +404,3 @@ mod tests {
         println!("{g}");
     }
 }
- */
