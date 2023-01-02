@@ -8,6 +8,8 @@ version = "0.1.0"
 anyhow = "1.0.68"
 color-eyre = "0.6.2"
 derive_more = "0.99.17"
+eframe = "0.20"
+egui = "0.20"
 itertools = "0.10.5"
 nom = "7.1.1"
 
