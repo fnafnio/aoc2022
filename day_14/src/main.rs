@@ -138,6 +138,7 @@ struct Grid {
     last: f64,
     speed: f64,
     running: bool,
+    dropped: usize,
 }
 
 impl Display for Grid {
@@ -154,7 +155,6 @@ impl Display for Grid {
 
 impl eframe::App for Grid {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        self.last += self.speed;
         egui::TopBottomPanel::top("my_panel").show(ctx, |ui| {
             ui.add(
                 egui::Slider::new(&mut self.speed, 0.01..=100.0)
@@ -162,12 +162,21 @@ impl eframe::App for Grid {
                     .logarithmic(true),
             );
             ui.add(egui::Checkbox::new(&mut self.running, "Simulation Running"));
+            ui.add(egui::Label::new(format!("Dropped: {}", self.dropped)));
+            if ui.add(egui::Button::new("Reset")).clicked() {
+                self.reset_sand();
+            };
         });
 
         if self.running {
+            self.last += self.speed / 60.0;
+
             while self.last > 1.0 {
                 self.last -= 1.0;
-                self.drop_sand();
+                if !self.drop_sand() {
+                    self.running = false;
+                    break;
+                }
             }
         }
 
@@ -242,9 +251,12 @@ impl Grid {
             .for_each(|c| *c = Cell::Air);
         self.backtrack.clear();
         self.current = SAND_START;
+        self.dropped = 0;
+        self.last = 0.0;
     }
 
     fn drop_sand(&mut self) -> bool {
+        self.dropped += 1;
         let (a, b, c) =
             if let Some(x) = self.get_cell_slice(self.current + (0isize, 1isize).into(), 3, -1) {
                 x.iter().tuples().next().unwrap()
@@ -324,6 +336,7 @@ impl Grid {
             last: 0.0,
             speed: 1.0,
             running: false,
+            dropped: 0,
         };
         grid.draw_paths()?;
         Ok(grid)
