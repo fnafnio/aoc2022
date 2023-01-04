@@ -10,7 +10,6 @@ use nom::bytes::complete::tag;
 use nom::combinator::map;
 use nom::sequence::separated_pair;
 use nom::{self, Finish, IResult};
-const SIDE: f32 = 5.0;
 const INPUT: &str = include_str!("../../input/day_14");
 const _INPUT: &str = "498,4 -> 498,6 -> 496,6
 503,4 -> 502,4 -> 502,9 -> 494,9";
@@ -21,9 +20,8 @@ fn main() -> color_eyre::Result<()> {
     println!("{g}");
     println!("{:?}", g.dim);
 
-
     let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(g.dim.x as f32 * SIDE * 4.0, g.dim.y as f32 * SIDE)),
+        initial_window_size: Some(egui::vec2(1600.0, 1200.0)),
         ..Default::default()
     };
 
@@ -94,7 +92,7 @@ impl From<PosG> for (isize, isize) {
     }
 }
 
-impl From<PosG> for egui::Pos2 {
+impl From<PosG> for Pos2 {
     fn from(PosG { x, y }: PosG) -> Self {
         Self {
             x: x as f32,
@@ -103,7 +101,16 @@ impl From<PosG> for egui::Pos2 {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+impl From<PosG> for Vec2 {
+    fn from(PosG { x, y }: PosG) -> Self {
+        Self {
+            x: x as f32,
+            y: y as f32,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[repr(u8)]
 enum Cell {
     Air = b' ',
@@ -121,7 +128,6 @@ impl From<Cell> for char {
 struct Grid {
     grid: Vec<Cell>,
     dim: PosG,
-    offset: PosG,
     paths: Vec<Vec<PosG>>,
 }
 
@@ -140,15 +146,23 @@ impl Display for Grid {
 impl eframe::App for Grid {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            let painter_size = ui.min_size();
+            let scale: Vec2 = painter_size / Vec2::from(self.dim);
+            // let scale = egui::vec2(2.0, 4.0);
+            let side = scale * Vec2 { x: 1.0, y: 1.0 };
 
-            
-            let painter_size = egui::vec2(1500.0, self.dim.y as f32 * SIDE);
+            ui.label(format!("painter_size: {painter_size:?}",));
+            ui.label(format!("scale: {scale:?}",));
+            ui.label(format!("side: {side:?}",));
+            ui.label(format!("self.dim: {:?}", self.dim));
+            let l = ui.label("");
+
+            // let painter_size = egui::vec2(1500.0, self.dim.y as f32 * SIDE);
             let (res, painter) = ui.allocate_painter(painter_size, Sense::hover());
-            let center = res.rect.center().to_vec2();
-            let center = center * Vec2{x: 1f32, y: 0f32};
 
+            let center = res.rect.center().to_vec2() * Vec2 { x: 0.5, y: 0.0 };
             let to_panel_pos = |pos: Pos2| {
-                (egui::vec2(pos.x as f32 * SIDE, pos.y as f32 * SIDE) + center).to_pos2()
+                (egui::vec2(pos.x as f32 * side.x, pos.y as f32 * side.y) + center).to_pos2()
             };
 
             for x in 0..self.dim.x {
@@ -158,15 +172,14 @@ impl eframe::App for Grid {
                     let cell = *self.get_cell(dot);
 
                     let color = match cell {
-                        Cell::Air => Color32::TRANSPARENT,
+                        Cell::Air => {continue;},
                         Cell::Rock => Color32::LIGHT_GRAY,
                         Cell::Sand => Color32::DARK_RED,
                     };
 
                     let dotf: Pos2 = dot.into();
 
-                    let rect =
-                        Rect::from_center_size(to_panel_pos(dotf), Vec2 { x: SIDE, y: SIDE });
+                    let rect = Rect::from_center_size(to_panel_pos(dotf), side);
                     painter.rect_filled(rect, egui::Rounding::none(), color);
                 }
             }
@@ -179,9 +192,52 @@ impl Grid {
         let index = v.as_index(self.dim);
         &self.grid[index]
     }
+
     fn get_cell_mut(&mut self, v: PosG) -> &mut Cell {
         let index = v.as_index(self.dim);
         &mut self.grid[index]
+    }
+
+    fn get_cell_slice(&self, v: PosG, l: usize, offset: isize) -> &[Cell] {
+        let index = (v.as_index(self.dim) as isize + offset) as usize;
+        &self.grid[index..index + l]
+    }
+
+    fn reset_sand(&mut self) {
+        self.grid
+            .iter_mut()
+            .filter(|c| **c == Cell::Sand)
+            .for_each(|c| *c = Cell::Air);
+    }
+
+    fn drop_sand(&mut self) {
+        let loc = PosG { x: 500, y: 0 };
+        let (a, b, c) = self
+            .get_cell_slice(loc, 3, -1)
+            .iter()
+            .tuples()
+            .next()
+            .unwrap();
+        loop {
+            match (a, b, c) {
+                (_, Cell::Air, _) => {
+                    /* drop further */
+                    todo!()
+                }
+                (Cell::Air, _, _) => {
+                    /* drop left */
+                    todo!()
+                }
+                (_, _, Cell::Air) => {
+                    /* drop right */
+                    todo!()
+                }
+                (_, _, _) => {
+                    /* stop dropping */
+                    todo!()
+                }
+            }
+        }
     }
 
     fn from_paths(paths: Vec<Vec<PosG>>) -> anyhow::Result<Self> {
@@ -204,10 +260,10 @@ impl Grid {
         let min = PosG::from((xmin, ymin));
         let max = PosG::from((xmax, ymax));
 
-        let offset = (min.x - 4, 0).into();
+        let y = max.y + 2;
         let dim = PosG {
-            x: max.x - min.x + 12,
-            y: max.y + 1,
+            x: max.x - min.x + 2 * y,
+            y,
         };
 
         let capacity = (dim.x * dim.y).abs() as usize;
@@ -216,23 +272,13 @@ impl Grid {
             grid.push(Cell::Air)
         }
 
-        let mut grid = Self {
-            grid,
-            dim,
-            offset,
-            paths,
-        };
+        let mut grid = Self { grid, dim, paths };
         grid.draw_paths()?;
         Ok(grid)
     }
 
     fn draw_paths(&mut self) -> anyhow::Result<()> {
-        let Self {
-            grid,
-            dim,
-            offset,
-            paths,
-        } = self;
+        let Self { grid, dim, paths } = self;
         paths
             .iter()
             .map(|p| {
@@ -247,8 +293,6 @@ impl Grid {
                         .unwrap();
 
                     let diff = *e - *s;
-                    let s = *s - *offset;
-                    let e = *e - *offset;
 
                     let s_index = s.as_index(*dim);
                     let e_index = e.as_index(*dim);
@@ -284,60 +328,6 @@ impl Grid {
                 Ok(())
             })
             .all(|l| l.is_ok());
-        Ok(())
-    }
-
-    fn _set_path(&mut self, path: &[PosG], c: Cell) -> anyhow::Result<()> {
-        for (s, e) in path.iter().tuple_windows() {
-            let Self {
-                grid,
-                dim,
-                offset,
-                paths: _,
-            } = self;
-
-            let (s, e) = [s, e]
-                .into_iter()
-                .sorted_by(|a, b| a.as_index(*dim).cmp(&b.as_index(*dim)))
-                .tuples()
-                .next()
-                .unwrap();
-
-            let diff = *e - *s;
-            let s = *s - *offset;
-            let e = *e - *offset;
-
-            let s_index = s.as_index(*dim);
-            let e_index = e.as_index(*dim);
-
-            match diff.into() {
-                (0, 0) => {
-                    return Err(anyhow!("path length 0"));
-                }
-                (x, 0) => {
-                    grid.iter_mut()
-                        .skip(s_index)
-                        .take((x.abs() as usize) + 1)
-                        .for_each(|field| *field = c);
-                }
-                (0, _y) => {
-                    grid.iter_mut()
-                        .enumerate()
-                        .skip(s_index)
-                        .step_by(dim.x as usize)
-                        .take_while(|(i, _f)| *i <= e_index)
-                        .for_each(|(_, field)| *field = c);
-                }
-                (_, _) => {
-                    return Err(anyhow!("only straight paths supported"));
-                }
-            }
-            if diff.x != 0 {
-            } else if diff.y != 0 {
-                // println!("s_index: {s_index}");
-                // println!("dim.x: {}", dim.x);
-            }
-        }
         Ok(())
     }
 
@@ -393,7 +383,6 @@ mod tests {
     fn test_creation() {
         let paths = path_input_parser(INPUT);
         let mut g = assert_ok!(Grid::from_paths(paths));
-        println!("offset {:?}", g.offset);
         println!("dim{:?}", g.dim);
         // println!("{g}");
         for p in paths {
