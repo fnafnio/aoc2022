@@ -1,6 +1,7 @@
 #![feature(int_roundings)]
 
 use std::fmt::Display;
+use std::time::Instant;
 
 use anyhow::anyhow;
 use derive_more::{Add, AddAssign, Sub, SubAssign};
@@ -10,9 +11,12 @@ use nom::bytes::complete::tag;
 use nom::combinator::map;
 use nom::sequence::separated_pair;
 use nom::{self, Finish, IResult};
+
+const SAND_START: PosG = PosG { x: 500, y: 1 };
 const INPUT: &str = include_str!("../../input/day_14");
 const _INPUT: &str = "498,4 -> 498,6 -> 496,6
 503,4 -> 502,4 -> 502,9 -> 494,9";
+
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
 
@@ -129,6 +133,11 @@ struct Grid {
     grid: Vec<Cell>,
     dim: PosG,
     paths: Vec<Vec<PosG>>,
+    backtrack: Vec<PosG>,
+    current: PosG,
+    last: f64,
+    speed: f64,
+    running: bool,
 }
 
 impl Display for Grid {
@@ -145,22 +154,40 @@ impl Display for Grid {
 
 impl eframe::App for Grid {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        self.last += self.speed;
+        egui::TopBottomPanel::top("my_panel").show(ctx, |ui| {
+            ui.add(
+                egui::Slider::new(&mut self.speed, 0.01..=100.0)
+                    .text("Speed")
+                    .logarithmic(true),
+            );
+            ui.add(egui::Checkbox::new(&mut self.running, "Simulation Running"));
+        });
+
+        if self.running {
+            while self.last > 1.0 {
+                self.last -= 1.0;
+                self.drop_sand();
+            }
+        }
+
         egui::CentralPanel::default().show(ctx, |ui| {
             let painter_size = ui.min_size();
             let scale: Vec2 = painter_size / Vec2::from(self.dim);
             // let scale = egui::vec2(2.0, 4.0);
             let side = scale * Vec2 { x: 1.0, y: 1.0 };
 
-            ui.label(format!("painter_size: {painter_size:?}",));
-            ui.label(format!("scale: {scale:?}",));
-            ui.label(format!("side: {side:?}",));
-            ui.label(format!("self.dim: {:?}", self.dim));
-            let l = ui.label("");
+            // ui.label(format!("painter_size: {painter_size:?}",));
+            // ui.label(format!("scale: {scale:?}",));
+            // ui.label(format!("side: {side:?}",));
+            // ui.label(format!("self.dim: {:?}", self.dim));
+            ui.label(format!("speed: {}", self.speed));
 
             // let painter_size = egui::vec2(1500.0, self.dim.y as f32 * SIDE);
             let (res, painter) = ui.allocate_painter(painter_size, Sense::hover());
 
-            let center = res.rect.center().to_vec2() * Vec2 { x: 0.5, y: 0.0 };
+            let center =
+                res.rect.center().to_vec2() * Vec2 { x: 0.5, y: 0.0 } + Vec2 { x: 0.0, y: 6.0 };
             let to_panel_pos = |pos: Pos2| {
                 (egui::vec2(pos.x as f32 * side.x, pos.y as f32 * side.y) + center).to_pos2()
             };
@@ -169,10 +196,12 @@ impl eframe::App for Grid {
                 for y in 0..self.dim.y {
                     let dot = PosG { x, y };
 
-                    let cell = *self.get_cell(dot);
+                    let cell = *self.get_cell(dot).unwrap();
 
                     let color = match cell {
-                        Cell::Air => {continue;},
+                        Cell::Air => {
+                            continue;
+                        }
                         Cell::Rock => Color32::LIGHT_GRAY,
                         Cell::Sand => Color32::DARK_RED,
                     };
@@ -188,19 +217,22 @@ impl eframe::App for Grid {
 }
 
 impl Grid {
-    fn get_cell(&self, v: PosG) -> &Cell {
+    fn get_cell(&self, v: PosG) -> Option<&Cell> {
         let index = v.as_index(self.dim);
-        &self.grid[index]
+        // &self.grid[index]
+        self.grid.get(index)
     }
 
-    fn get_cell_mut(&mut self, v: PosG) -> &mut Cell {
+    fn get_cell_mut(&mut self, v: PosG) -> Option<&mut Cell> {
         let index = v.as_index(self.dim);
-        &mut self.grid[index]
+        self.grid.get_mut(index)
+        // &mut self.grid[index]
     }
 
-    fn get_cell_slice(&self, v: PosG, l: usize, offset: isize) -> &[Cell] {
+    fn get_cell_slice(&self, v: PosG, l: usize, offset: isize) -> Option<&[Cell]> {
         let index = (v.as_index(self.dim) as isize + offset) as usize;
-        &self.grid[index..index + l]
+        // &self.grid[index..index + l]
+        self.grid.get(index..index + l)
     }
 
     fn reset_sand(&mut self) {
@@ -208,36 +240,47 @@ impl Grid {
             .iter_mut()
             .filter(|c| **c == Cell::Sand)
             .for_each(|c| *c = Cell::Air);
+        self.backtrack.clear();
+        self.current = SAND_START;
     }
 
-    fn drop_sand(&mut self) {
-        let loc = PosG { x: 500, y: 0 };
-        let (a, b, c) = self
-            .get_cell_slice(loc, 3, -1)
-            .iter()
-            .tuples()
-            .next()
-            .unwrap();
-        loop {
-            match (a, b, c) {
-                (_, Cell::Air, _) => {
-                    /* drop further */
-                    todo!()
-                }
-                (Cell::Air, _, _) => {
-                    /* drop left */
-                    todo!()
-                }
-                (_, _, Cell::Air) => {
-                    /* drop right */
-                    todo!()
-                }
-                (_, _, _) => {
-                    /* stop dropping */
-                    todo!()
-                }
+    fn drop_sand(&mut self) -> bool {
+        let (a, b, c) =
+            if let Some(x) = self.get_cell_slice(self.current + (0isize, 1isize).into(), 3, -1) {
+                x.iter().tuples().next().unwrap()
+            } else {
+                return false;
+            };
+
+        use Cell::*;
+        match (a, b, c) {
+            (_, Air, _) => {
+                // free fall
+                *self.get_cell_mut(self.current).unwrap() = Cell::Air;
+                self.current.y += 1;
+                *self.get_cell_mut(self.current).unwrap() = Cell::Sand;
+            }
+            (Air, Rock | Sand, _) => {
+                // drop left
+                *self.get_cell_mut(self.current).unwrap() = Cell::Air;
+                self.backtrack.push(self.current);
+                self.current += (-1isize, 1isize).into();
+                *self.get_cell_mut(self.current).unwrap() = Cell::Sand;
+            }
+            (Rock | Sand, Rock | Sand, Air) => {
+                // drop right
+                *self.get_cell_mut(self.current).unwrap() = Cell::Air;
+                self.backtrack.push(self.current);
+                self.current += (1isize, 1isize).into();
+                *self.get_cell_mut(self.current).unwrap() = Cell::Sand;
+            }
+            (Rock | Sand, Rock | Sand, Rock | Sand) => {
+                // bottom out
+                self.current = self.backtrack.pop().unwrap_or(SAND_START);
+                *self.get_cell_mut(self.current).unwrap() = Cell::Sand;
             }
         }
+        true
     }
 
     fn from_paths(paths: Vec<Vec<PosG>>) -> anyhow::Result<Self> {
@@ -272,13 +315,24 @@ impl Grid {
             grid.push(Cell::Air)
         }
 
-        let mut grid = Self { grid, dim, paths };
+        let mut grid = Self {
+            grid,
+            dim,
+            paths,
+            backtrack: vec![],
+            current: SAND_START,
+            last: 0.0,
+            speed: 1.0,
+            running: false,
+        };
         grid.draw_paths()?;
         Ok(grid)
     }
 
     fn draw_paths(&mut self) -> anyhow::Result<()> {
-        let Self { grid, dim, paths } = self;
+        let Self {
+            grid, dim, paths, ..
+        } = self;
         paths
             .iter()
             .map(|p| {
