@@ -1,2 +1,10 @@
 [workspace]
 members = ["aoc-solver", "day_14"]
+
+
+[profile.release]
+debug = true
+
+# Or set this environment variable:
+# 
+# CARGO_PROFILE_RELEASE_DEBUG=true

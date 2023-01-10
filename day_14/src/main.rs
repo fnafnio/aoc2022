@@ -256,7 +256,6 @@ impl Grid {
     }
 
     fn drop_sand(&mut self) -> bool {
-        self.dropped += 1;
         let (a, b, c) =
             if let Some(x) = self.get_cell_slice(self.current + (0isize, 1isize).into(), 3, -1) {
                 x.iter().tuples().next().unwrap()
@@ -290,6 +289,7 @@ impl Grid {
                 // bottom out
                 self.current = self.backtrack.pop().unwrap_or(SAND_START);
                 *self.get_cell_mut(self.current).unwrap() = Cell::Sand;
+                self.dropped += 1;
             }
         }
         true
@@ -448,15 +448,18 @@ mod tests {
 
     #[test]
     fn test_creation() {
-        let paths = path_input_parser(INPUT);
-        let mut g = assert_ok!(Grid::from_paths(paths));
-        println!("dim{:?}", g.dim);
-        // println!("{g}");
-        for p in paths {
-            println!("{p:?}");
-            println!("{g}");
-            assert_ok!(g.set_path(&p, crate::Cell::Rock));
+        // let paths = path_input_parser(INPUT);
+        // let mut g = assert_ok!(Grid::from_paths(paths));
+        let mut g = Grid::parse(super::INPUT).unwrap();
+        println!("{}", g);
+        g.draw_paths().unwrap();
+        println!("{}", g);
+        let mut i = 0;
+        while g.drop_sand() {
+            i += 1;
         }
-        println!("{g}");
+        dbg!(i);
+        // println!("{:?}", g);
+        println!("{:?}", g.dropped)
     }
 }
