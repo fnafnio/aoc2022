@@ -12,17 +12,31 @@ pub struct Day;
 
 impl Solver for Day {
     fn part_1(&self, input: &str) -> String {
-        let mut g = Grid::parse(input).unwrap();
-        while g.drop_sand() {}
-        g.dropped.to_string()
+        solve_part_1(input, false).to_string()
     }
 
     fn part_2(&self, input: &str) -> String {
-        let mut g = Grid::parse(input).unwrap();
-        g.add_floor();
-        while g.drop_sand() {}
-        g.dropped.to_string()
+        solve_part_2(input, false).to_string()
     }
+}
+
+fn solve_part_2(input: &str, print: bool) -> usize {
+    let mut g = Grid::parse(input).unwrap();
+    g.add_floor();
+    while g.drop_sand() != Drop::TheStart {}
+    if print {
+        println!("{}", g);
+    }
+    g.dropped
+}
+
+fn solve_part_1(input: &str, print: bool) -> usize {
+    let mut g = Grid::parse(input).unwrap();
+    while g.drop_sand() != Drop::TheAbyss {}
+    if print {
+        println!("{}", g);
+    }
+    g.dropped
 }
 
 const SAND_START: PosG = PosG { x: 500, y: 0 };
@@ -35,10 +49,6 @@ struct PosG {
 }
 
 impl PosG {
-    // fn as_index(&self, (width, height): (isize, isize)) -> usize {
-    //     (self.y * width + self.x) as usize
-    // }
-
     fn as_index(&self, dim: PosG) -> usize {
         (self.y * dim.x + self.x) as usize
     }
@@ -92,13 +102,15 @@ struct Grid {
     backtrack: Vec<PosG>,
     current: PosG,
     dropped: usize,
+    offset: isize,
+    sand_start: PosG,
 }
 
 impl Display for Grid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.grid
             .chunks(self.dim.x as _)
-            .map(|c| c.iter().skip((500 - self.dim.x) as usize).take(self.dim.x as usize * 2).map(|c| char::from(*c)).collect::<String>())
+            .map(|c| c.iter().map(|c| char::from(*c)).collect::<String>())
             .enumerate()
             .for_each(|(i, l)| writeln!(f, "{}:{}", i, l).unwrap());
 
@@ -112,6 +124,7 @@ enum Cell {
     Air = b' ',
     Rock = b'#',
     Sand = b'o',
+    Start = b'+',
 }
 
 impl From<Cell> for char {
@@ -120,17 +133,22 @@ impl From<Cell> for char {
     }
 }
 
+#[derive(PartialEq, Debug)]
+enum Drop {
+    TheAbyss,
+    TheStart,
+    Dropping,
+}
+
 impl Grid {
     fn get_cell(&self, v: PosG) -> Option<&Cell> {
         let index = v.as_index(self.dim);
-        // &self.grid[index]
         self.grid.get(index)
     }
 
     fn get_cell_mut(&mut self, v: PosG) -> Option<&mut Cell> {
         let index = v.as_index(self.dim);
         self.grid.get_mut(index)
-        // &mut self.grid[index]
     }
 
     fn get_cell_slice(&self, v: PosG, l: usize, offset: isize) -> Option<&[Cell]> {
@@ -145,16 +163,16 @@ impl Grid {
             .filter(|c| **c == Cell::Sand)
             .for_each(|c| *c = Cell::Air);
         self.backtrack.clear();
-        self.current = SAND_START;
+        self.current = self.sand_start;
         self.dropped = 0;
     }
 
-    fn drop_sand(&mut self) -> bool {
+    fn drop_sand(&mut self) -> Drop {
         let (a, b, c) =
             if let Some(x) = self.get_cell_slice(self.current + (0isize, 1isize).into(), 3, -1) {
                 x.iter().tuples().next().unwrap()
             } else {
-                return false;
+                return Drop::TheAbyss;
             };
 
         use Cell::*;
@@ -181,17 +199,21 @@ impl Grid {
             }
             (Rock | Sand, Rock | Sand, Rock | Sand) => {
                 // bottom out
-                if self.current == SAND_START {
-                    return false;
-                }
-                self.current = self.backtrack.pop().unwrap_or(SAND_START);
-                *self.get_cell_mut(self.current).unwrap() = Cell::Sand;
                 self.dropped += 1;
+
+                if self.current == self.sand_start {
+                    return Drop::TheStart;
+                }
+                self.current = self.backtrack.pop().unwrap_or(self.sand_start);
+                *self.get_cell_mut(self.current).unwrap() = Cell::Sand;
+            }
+            (_, _, _) => {
+                unimplemented!()
             }
         }
-        true
+        Drop::Dropping
     }
-    fn from_paths(paths: Vec<Vec<PosG>>) -> anyhow::Result<Self> {
+    fn from_paths(mut paths: Vec<Vec<PosG>>) -> anyhow::Result<Self> {
         let (xmin, xmax) = paths
             .iter()
             .flat_map(|p| p.iter())
@@ -211,26 +233,32 @@ impl Grid {
         let min = PosG::from((xmin, ymin));
         let max = PosG::from((xmax, ymax));
 
-        let y = max.y + 2;
-        let dim = PosG {
-            // x: max.x - min.x + 2 * y,
-            x: 1000,
-            y: y,
-        };
+        let y = max.y + 2; // this way we can already fit the floor
+        let x = max.x - min.x + 2 * y; // this would make it bigger than necessary I guess, max to the floor should be y. we'll see
 
-        let capacity = (dim.x * dim.y).abs() as usize;
-        let mut grid = Vec::with_capacity(capacity);
-        for _ in 0..capacity {
-            grid.push(Cell::Air)
+        let offset = min.x - y;
+
+        let dim = PosG { x, y };
+
+        for p in paths.iter_mut() {
+            for e in p.iter_mut() {
+                e.x -= offset;
+            }
         }
 
+        let capacity = (dim.x * dim.y).abs() as usize;
+        let grid = vec![Cell::Air; capacity];
+
+        let sand_start = SAND_START - PosG { x: offset, y: 0 };
         let mut grid = Self {
             grid,
             dim,
             paths,
             backtrack: vec![],
-            current: SAND_START,
+            current: sand_start,
             dropped: 0,
+            offset,
+            sand_start,
         };
         grid.draw_paths()?;
         Ok(grid)
@@ -238,12 +266,8 @@ impl Grid {
 
     fn add_floor(&mut self) {
         for _ in 0..self.dim.x {
-            self.grid.push(Cell::Air)
-        }
-        for _ in 0..self.dim.x {
             self.grid.push(Cell::Rock)
         }
-        self.dim.y += 2;
     }
 
     fn draw_paths(&mut self) -> anyhow::Result<()> {
@@ -254,18 +278,21 @@ impl Grid {
             .iter()
             .map(|p| {
                 let path: &[PosG] = &p;
-                for (s, e) in path.iter().tuple_windows() {
-                    let (s, e) = [s, e]
+                for (start, end) in path.iter().tuple_windows() {
+                    let (p_start, p_end) = [start, end]
                         .into_iter()
                         .sorted_by(|a, b| a.as_index(*dim).cmp(&b.as_index(*dim)))
                         .tuples()
                         .next()
                         .unwrap();
 
-                    let diff = *e - *s;
+                    let diff = *p_end - *p_start;
+                    let x = 5;
+                    // let y = x.sig
 
-                    let s_index = s.as_index(*dim);
-                    let e_index = e.as_index(*dim);
+                    let s_index = p_start.as_index(*dim);
+
+                    let e_index = p_end.as_index(*dim);
 
                     match diff.into() {
                         (0, 0) => {
@@ -293,6 +320,7 @@ impl Grid {
                 Ok(())
             })
             .all(|l| l.is_ok());
+        *self.get_cell_mut(self.sand_start).unwrap() = Cell::Start;
         Ok(())
     }
 
@@ -310,7 +338,7 @@ impl Grid {
 mod tests {
     const INPUT: &str = "498,4 -> 498,6 -> 496,6
 503,4 -> 502,4 -> 502,9 -> 494,9";
-    use super::{parse_path, Grid, PosG};
+    use super::{parse_path, solve_part_1, solve_part_2, Day, Drop, Grid, PosG};
     use assert_ok::assert_ok;
 
     fn path_input_parser(input: &str) -> Vec<Vec<PosG>> {
@@ -318,7 +346,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_path() {
+    fn path_parser() {
         let mut it = path_input_parser(INPUT).into_iter();
         assert_eq!(
             Some(vec![
@@ -340,29 +368,31 @@ mod tests {
     }
 
     #[test]
-    fn test_part_1() {
+    fn part_1() {
         let mut g = Grid::parse(INPUT).unwrap();
         println!("{}", g);
         g.draw_paths().unwrap();
         println!("{}", g);
         let mut i = 0;
-        while g.drop_sand() {
+
+        while g.drop_sand() != Drop::TheAbyss {
             i += 1;
         }
+        println!("{}", i);
         println!("{}", g);
 
         println!("{:?}", g.dropped);
-        assert_eq!(25, g.dropped)
+        assert_eq!(24, g.dropped)
     }
     #[test]
-    fn test_part_2() {
+    fn part_2() {
         let mut g = Grid::parse(INPUT).unwrap();
         println!("{}", g);
         g.add_floor();
         g.draw_paths().unwrap();
         println!("{}", g);
         let mut i = 0;
-        while g.drop_sand() {
+        while g.drop_sand() != Drop::TheStart {
             i += 1;
         }
         println!("{}", g);
@@ -370,37 +400,17 @@ mod tests {
         println!("{:?}", g.dropped);
         assert_eq!(93, g.dropped);
     }
-    // #[test]
-    // fn test_part_1_2() {
-    //     let s = include_str!("../../../input/day_14");
-    //     let mut g = Grid::parse(s).unwrap();
-    //     println!("{}", g);
-    //     g.draw_paths().unwrap();
-    //     println!("{}", g);
-    //     let mut i = 0;
-    //     while g.drop_sand() {
-    //         i += 1;
-    //     }
-    //     println!("{}", g);
 
-    //     println!("{:?}", g.dropped);
-    //     assert_eq!(25, g.dropped)
-    // }
-    // #[test]
-    // fn test_part_2_2() {
-    //     let s = include_str!("../../../input/day_14");
-    //     let mut g = Grid::parse(s).unwrap();
-    //     println!("{}", g);
-    //     g.add_floor();
-    //     g.draw_paths().unwrap();
-    //     println!("{}", g);
-    //     let mut i = 0;
-    //     while g.drop_sand() {
-    //         i += 1;
-    //     }
-    //     println!("{}", g);
-
-    //     println!("{:?}", g.dropped);
-    //     assert_eq!(93, g.dropped);
-    // }
+    #[test]
+    fn part_1_solver() {
+        assert_eq!(solve_part_1(INPUT, true), 24);
+        let input = include_str!("../../../input/day_14");
+        assert_eq!(solve_part_1(input, true), 825);
+    }
+    #[test]
+    fn part_2_solver() {
+        assert_eq!(solve_part_2(INPUT, true), 93);
+        let input = include_str!("../../../input/day_14");
+        assert_eq!(solve_part_2(input, true), 26729);
+    }
 }
