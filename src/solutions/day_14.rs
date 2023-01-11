@@ -404,13 +404,13 @@ mod tests {
     #[test]
     fn part_1_solver() {
         assert_eq!(solve_part_1(INPUT, true), 24);
-        let input = include_str!("../../../input/day_14");
+        let input = include_str!("../../input/day_14");
         assert_eq!(solve_part_1(input, true), 825);
     }
     #[test]
     fn part_2_solver() {
         assert_eq!(solve_part_2(INPUT, true), 93);
-        let input = include_str!("../../../input/day_14");
+        let input = include_str!("../../input/day_14");
         assert_eq!(solve_part_2(input, true), 26729);
     }
 }
